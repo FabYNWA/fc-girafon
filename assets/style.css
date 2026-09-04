@@ -1339,6 +1339,7 @@ table.data tbody tr.self-team:nth-child(even){ background:#FCEEB0; }
     var(--red);
   margin-bottom:32px;
 }
+.stat-highlight-3col{ grid-template-columns:repeat(3, 1fr); }
 .stat-big:nth-child(3n){ border-right:none; }
 .stat-big{ border-right-color:rgba(0,0,0,.25); }
 .stat-big:nth-child(n+4){ border-top:1px solid rgba(0,0,0,.25); }
@@ -1809,12 +1810,19 @@ table.classement-table.data th.num, table.classement-table.data td.num{
      (toujours visibles sur la fiche complète du joueur) */
   .roster-grid{ grid-template-columns:repeat(4, 1fr); gap:8px; }
   .roster-grid .player-name{ font-size:10.5px; padding:0 2px; }
-  .roster-grid .player-flocage,
-  .roster-grid .player-postes,
-  .roster-grid .player-age,
-  .roster-grid .player-phrase{ display:none; }
+  .roster-grid .player-flocage{ font-size:8px; }
+  .roster-grid .player-postes{ padding:0 2px; margin-top:4px; }
+  .roster-grid .poste-chip{ font-size:7px; padding:1px 3px; }
+  .roster-grid .player-age{ font-size:9px; margin-top:3px; }
   .roster-grid .player-initials{ font-size:20px; }
   .roster-grid .player-number-bg{ font-size:11px; top:4px; right:4px; }
+
+  /* Fiche joueur : le bandeau 3 colonnes (Matchs/Buts/Passes) était fixé
+     en style inline, donc jamais affecté par aucune media query — corrigé
+     en passant par cette classe, qu'on peut enfin surcharger ici */
+  .stat-highlight-3col{ grid-template-columns:1fr 1fr 1fr; }
+  .stat-highlight-3col .stat-big{ padding:14px 4px; }
+  .stat-highlight-3col .stat-big-num{ font-size:20px; }
 }
 
 .empty-state{
