@@ -994,7 +994,7 @@ def render_disponibilites(matchs, effectif, disponibilites):
     if len(programmes) > 0:
         prochain = programmes.iloc[0]
         match_date_str = date_fr(prochain["date_dt"])
-        rows = disponibilites[disponibilites["match_date"] == prochain["date"]] if "match_date" in disponibilites.columns else disponibilites.iloc[0:0]
+        rows = disponibilites[disponibilites["Match"].str.contains(str(prochain["date"]), na=False)] if "Match" in disponibilites.columns else disponibilites.iloc[0:0]
 
         groups = {"Présent": [], "Absent": [], "Incertain": []}
         repondants = set()
