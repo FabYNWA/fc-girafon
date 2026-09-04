@@ -1103,8 +1103,8 @@ def render_player_page(p, matchs, part):
     nb_passes = int(mine["passes"].sum())
 
     history_rows = mine.merge(matchs, left_on="match_id", right_on="id").sort_values("date_dt", ascending=False)
-    history_html = ""
-    for _, r in history_rows.iterrows():
+
+    def match_row_html(r):
         opp = r["adversaire"]
         home_is = r["domicile_exterieur"] == "Domicile"
         hs = r["score_girafon"] if home_is else r["score_adversaire"]
@@ -1118,7 +1118,7 @@ def render_player_page(p, matchs, part):
         if r["passes"] > 0:
             stat_bits.append(fmt_stat_unit(r["passes"], "passes"))
         stat_txt = ", ".join(stat_bits) if stat_bits else "—"
-        history_html += f"""
+        return f"""
         <tr>
           <td>{date_fr(r['date_dt'])}</td>
           <td>{r['competition']}</td>
@@ -1127,10 +1127,44 @@ def render_player_page(p, matchs, part):
           <td>{stat_txt}</td>
         </tr>"""
 
-    history_table = f"""<table class="data">
-      <thead><tr><th>Date</th><th>Compétition</th><th>Match</th><th class="num">Résultat</th><th>Perf.</th></tr></thead>
-      <tbody>{history_html}</tbody>
-    </table>""" if history_html else '<div class="empty-state">Aucun match enregistré pour ce joueur.</div>'
+    def history_table_html(rows):
+        body_rows = "".join(match_row_html(r) for _, r in rows.iterrows())
+        if not body_rows:
+            return '<div class="empty-state">Aucun match enregistré pour ce joueur.</div>'
+        return f"""<table class="data">
+          <thead><tr><th>Date</th><th>Compétition</th><th>Match</th><th class="num">Résultat</th><th>Perf.</th></tr></thead>
+          <tbody>{body_rows}</tbody>
+        </table>"""
+
+    # --- Onglet Carrière : totaux + historique complet, toutes saisons ---
+    carriere_html = f"""
+    <div class="stat-highlight" style="grid-template-columns:repeat(3,1fr);">
+      <div class="stat-big"><span class="stat-big-num">{nb_matchs}</span><span class="stat-big-label">Matchs joués</span></div>
+      <div class="stat-big"><span class="stat-big-num">{nb_buts}</span><span class="stat-big-label">Buts</span></div>
+      <div class="stat-big"><span class="stat-big-num">{nb_passes}</span><span class="stat-big-label">Passes D.</span></div>
+    </div>
+    <div class="section-head" style="margin-top:28px;"><h2>Historique des matchs</h2></div>
+    {history_table_html(history_rows)}"""
+
+    # --- Onglet Par saison : un bloc de stats + un historique par saison ---
+    saisons_html = ""
+    for s in sorted(history_rows["saison"].dropna().unique().tolist(),
+                     key=lambda x: int(x.split("/")[0].strip()), reverse=True):
+        rows_s = history_rows[history_rows["saison"] == s]
+        ids_s = set(rows_s["id"])
+        mine_ok_s = mine_ok[mine_ok["match_id"].isin(ids_s)]
+        buts_s = int(mine[mine["match_id"].isin(ids_s)]["buts"].sum())
+        passes_s = int(mine[mine["match_id"].isin(ids_s)]["passes"].sum())
+        saisons_html += f"""
+        <div class="section-head" style="margin-top:28px;"><h3 style="font-family:var(--font-display);font-size:16px;">Saison {s}</h3></div>
+        <div class="stat-highlight" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px;">
+          <div class="stat-big"><span class="stat-big-num">{len(mine_ok_s)}</span><span class="stat-big-label">Matchs joués</span></div>
+          <div class="stat-big"><span class="stat-big-num">{buts_s}</span><span class="stat-big-label">Buts</span></div>
+          <div class="stat-big"><span class="stat-big-num">{passes_s}</span><span class="stat-big-label">Passes D.</span></div>
+        </div>
+        {history_table_html(rows_s)}"""
+    if not saisons_html:
+        saisons_html = '<div class="empty-state">Aucun match enregistré pour ce joueur.</div>'
 
     card_html = player_card(p, linked=False, show_phrase=True)
 
@@ -1141,17 +1175,24 @@ def render_player_page(p, matchs, part):
         <div class="player-page-grid" style="margin-top:16px;">
           <div>{card_html}</div>
           <div>
-            <div class="stat-highlight" style="grid-template-columns:repeat(3,1fr);">
-              <div class="stat-big"><span class="stat-big-num">{nb_matchs}</span><span class="stat-big-label">Matchs joués</span></div>
-              <div class="stat-big"><span class="stat-big-num">{nb_buts}</span><span class="stat-big-label">Buts</span></div>
-              <div class="stat-big"><span class="stat-big-num">{nb_passes}</span><span class="stat-big-label">Passes D.</span></div>
+            <div class="subtabs">
+              <button class="active" onclick="showSub('carriere')">Carrière</button>
+              <button onclick="showSub('parsaison')">Par saison</button>
             </div>
+            <div id="carriere" class="subpanel active">{carriere_html}</div>
+            <div id="parsaison" class="subpanel">{saisons_html}</div>
           </div>
         </div>
-        <div class="section-head" style="margin-top:32px;"><h2>Historique des matchs</h2></div>
-        {history_table}
       </div>
-    </div>"""
+    </div>
+    <script>
+    function showSub(id){{
+      document.querySelectorAll('.subpanel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.subtabs button').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      event.target.classList.add('active');
+    }}
+    </script>"""
     return layout(nom, "effectif.html", body)
 
 # ---------------------------------------------------------------------------
@@ -1372,7 +1413,7 @@ def main():
         render_confrontations(matchs_all, color_map), encoding="utf-8")
     for _, p in effectif.iterrows():
         (OUT / f"joueur-{slugify(p['nom'])}.html").write_text(
-            render_player_page(p, matchs_current, part), encoding="utf-8")
+            render_player_page(p, matchs_all, part), encoding="utf-8")
     total_pages += 4 + len(effectif)
 
     print(f"Site généré : {total_pages} pages sur {len(SEASONS)} saison(s) — {SEASONS}")
