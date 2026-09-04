@@ -933,7 +933,7 @@ def render_coupe(matchs, part, effectif, color_map, stade_map):
 # ---------------------------------------------------------------------------
 
 def player_card(p, linked=True, show_phrase=False):
-    numero_bg = f'<span class="player-number-bg">{int(p["numero"])}</span>' if pd.notna(p.get("numero")) else ""
+    numero_bg = f'<span class="player-number-bg">#{int(p["numero"])}</span>' if pd.notna(p.get("numero")) else ""
     postes = [x.strip() for x in str(p["poste"]).split(",")] if pd.notna(p.get("poste")) else []
     postes_html = " ".join(f'<span class="poste-chip">{poste}</span>' for poste in postes)
     phrase = ""
