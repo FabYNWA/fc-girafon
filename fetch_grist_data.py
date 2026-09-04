@@ -87,13 +87,38 @@ def main():
     date_prochain_par_id = {r["id"]: grist_date_to_str(r.get("Date")) for r in prochains_raw}
 
     # -----------------------------------------------------------------
-    # Effectif
+    # Effectif — les photos sont des pièces jointes Grist, téléchargées
+    # à part et déposées dans fetched_assets/photos/ (voir deploy.yml)
     # -----------------------------------------------------------------
+    import mimetypes
+    PHOTOS_DIR = Path(__file__).parent / "fetched_assets" / "photos"
+    PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
+
+    def download_photo(attachment_id, slug):
+        url = f"{SERVER}/api/docs/{DOC_ID}/attachments/{attachment_id}/download"
+        resp = requests.get(url, headers=HEADERS, timeout=30)
+        resp.raise_for_status()
+        ext = mimetypes.guess_extension(resp.headers.get("Content-Type", "").split(";")[0]) or ".jpg"
+        if ext == ".jpe":
+            ext = ".jpg"
+        filename = f"{slug}{ext}"
+        (PHOTOS_DIR / filename).write_bytes(resp.content)
+        return f"assets/photos/{filename}"
+
     effectif_out = []
     for r in effectif_raw:
+        nom = r.get("Nom", "")
+        slug = "".join(c.lower() if c.isalnum() else "-" for c in nom).strip("-")
+        photo_ids = unlist(r.get("Photo"))
+        photo_url = ""
+        if photo_ids:
+            try:
+                photo_url = download_photo(photo_ids[0], slug)
+            except requests.HTTPError as e:
+                print(f"  ! Photo de {nom} non récupérée : {e}", file=sys.stderr)
         effectif_out.append({
-            "nom": r.get("Nom", ""),
-            "photo_url": "",  # les photos (pièces jointes) sont gérées à part
+            "nom": nom,
+            "photo_url": photo_url,
             "poste": ", ".join(unlist(r.get("Poste"))),
             "numero": r.get("Numero"),
             "flocage": r.get("Flocage", ""),
