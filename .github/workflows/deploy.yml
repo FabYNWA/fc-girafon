@@ -44,11 +44,15 @@ jobs:
       - name: Générer le site
         run: python build_site.py
 
-      - name: Copier les fichiers statiques (CSS, logo)
+      - name: Copier les fichiers statiques (CSS, logo, photos)
         run: |
           mkdir -p output/assets
           cp assets/style.css output/assets/
           cp assets/logo.png output/assets/
+          if [ -d fetched_assets/photos ]; then
+            mkdir -p output/assets/photos
+            cp -r fetched_assets/photos/. output/assets/photos/
+          fi
 
       - name: Préparer le déploiement Pages
         uses: actions/upload-pages-artifact@v3
