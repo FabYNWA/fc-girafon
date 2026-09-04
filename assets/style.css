@@ -1797,6 +1797,24 @@ table.classement-table.data th.num, table.classement-table.data td.num{
   .mini-podium-value{ font-size:12.5px; }
   .lb-row{ grid-template-columns:18px 28px 1fr 56px 22px; gap:6px; }
   .confront-head{ flex-wrap:wrap; }
+
+  /* Top 3 (Matchs joués / Buteurs / Passeurs) : forcer l'empilement, la
+     règle à 820px ne suffisait pas à elle seule sur certains téléphones */
+  .stat-cols{ grid-template-columns:1fr !important; gap:14px; }
+
+  /* Top du mois (Accueil) : une box par ligne au lieu de deux collées */
+  .stat-cols-2{ grid-template-columns:1fr !important; gap:14px; }
+
+  /* Effectif : grille dense, 4 par ligne, détails secondaires masqués
+     (toujours visibles sur la fiche complète du joueur) */
+  .roster-grid{ grid-template-columns:repeat(4, 1fr); gap:8px; }
+  .roster-grid .player-name{ font-size:10.5px; padding:0 2px; }
+  .roster-grid .player-flocage,
+  .roster-grid .player-postes,
+  .roster-grid .player-age,
+  .roster-grid .player-phrase{ display:none; }
+  .roster-grid .player-initials{ font-size:20px; }
+  .roster-grid .player-number-bg{ font-size:11px; top:4px; right:4px; }
 }
 
 .empty-state{
@@ -1806,6 +1824,12 @@ table.classement-table.data th.num, table.classement-table.data td.num{
   font-size:14px;
   background:var(--paper);
   border:1px dashed var(--grey-line);
+}
+
+.hint-text{
+  font-size:13px;
+  color:var(--grey);
+  margin:0 0 16px;
 }
 
 /* ---------------------------------------------------------------------- */
