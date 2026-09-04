@@ -25,7 +25,7 @@ SITE_BASE = "/fc-girafon/"
 # Pages qui existent en une version par saison (archivées dans un sous-dossier
 # pour toutes les saisons sauf la plus récente, qui reste à la racine)
 SEASON_PAGES = {"index.html", "calendrier.html", "championnat.html",
-                 "coupe.html", "confrontations.html", "statistiques.html"}
+                 "coupe.html", "statistiques.html"}
 
 def season_slug(season):
     """'2025 / 2026' -> '2025-2026', utilisé comme nom de sous-dossier d'archive."""
@@ -865,30 +865,38 @@ def classement_table(classement, championnat_label):
 
 def render_championnat(matchs, classement, part, effectif, color_map, stade_map):
     part_summary = build_participation_summary(part, effectif['nom'].tolist())
-    m1 = matchs[matchs["competition"] == "Championnat 1 | Bronze"].sort_values("date_dt")
-    m2 = matchs[matchs["competition"] == "Championnat 2 | Argent"].sort_values("date_dt")
+
+    competitions = sorted(
+        matchs[matchs["competition"].str.startswith("Championnat", na=False)]["competition"].dropna().unique().tolist()
+    )
+
+    if not competitions:
+        body = f"""
+        <div class="section">
+          <div class="container">
+            <div class="section-head"><h2>Championnat</h2></div>
+            <div class="empty-state">Les championnats de cette saison n'ont pas encore été déterminés.</div>
+          </div>
+        </div>"""
+        return layout("Championnat", "championnat.html", body)
+
+    tabs_html = "".join(
+        f'<button class="{"active" if i == 0 else ""}" onclick="showSub(\'c{i}\')">{comp.replace(" | ", " — ")}</button>'
+        for i, comp in enumerate(competitions)
+    )
+    panels_html = "".join(f"""
+        <div id="c{i}" class="subpanel {'active' if i == 0 else ''}">
+          <div class="section-head"><h2>Classement</h2></div>
+          {classement_table(classement, comp)}
+          <div class="section-head" style="margin-top:32px;"><h2>Résultats &amp; calendrier</h2></div>
+          {match_grid(matchs[matchs["competition"] == comp].sort_values("date_dt"), part_summary, color_map, stade_map)}
+        </div>""" for i, comp in enumerate(competitions))
 
     body = f"""
     <div class="section">
       <div class="container">
-        <div class="subtabs">
-          <button class="active" onclick="showSub('c1')">Championnat 1 — Bronze</button>
-          <button onclick="showSub('c2')">Championnat 2 — Argent</button>
-        </div>
-
-        <div id="c1" class="subpanel active">
-          <div class="section-head"><h2>Classement</h2></div>
-          {classement_table(classement, "Championnat 1 | Bronze")}
-          <div class="section-head" style="margin-top:32px;"><h2>Résultats &amp; calendrier</h2></div>
-          {match_grid(m1, part_summary, color_map, stade_map)}
-        </div>
-
-        <div id="c2" class="subpanel">
-          <div class="section-head"><h2>Classement</h2></div>
-          {classement_table(classement, "Championnat 2 | Argent")}
-          <div class="section-head" style="margin-top:32px;"><h2>Résultats &amp; calendrier</h2></div>
-          {match_grid(m2, part_summary, color_map, stade_map)}
-        </div>
+        <div class="subtabs">{tabs_html}</div>
+        {panels_html}
       </div>
     </div>
     <script>
@@ -1173,9 +1181,12 @@ def compute_collectives(matchs):
         ("Total", joues),
         ("Championnat", joues[joues["competition"].str.startswith("Championnat", na=False)]),
         ("Coupe", joues[joues["competition"].str.startswith("Coupe", na=False)]),
-        ("— Championnat 1 | Bronze", joues[joues["competition"] == "Championnat 1 | Bronze"]),
-        ("— Championnat 2 | Argent", joues[joues["competition"] == "Championnat 2 | Argent"]),
     ]
+    championnats_reels = sorted(
+        joues[joues["competition"].str.startswith("Championnat", na=False)]["competition"].dropna().unique().tolist()
+    )
+    for comp in championnats_reels:
+        groups.append((f"— {comp}", joues[joues["competition"] == comp]))
     return [(label, stats(df)) for label, df in groups]
 
 def compute_individuelles(matchs, part, effectif):
@@ -1314,7 +1325,6 @@ def generate_season_pages(matchs_all, part, effectif, classement_all, annonces, 
         "calendrier.html": render_calendrier(matchs, part, effectif, color_map, stade_map),
         "championnat.html": render_championnat(matchs, classement, part, effectif, color_map, stade_map),
         "coupe.html": render_coupe(matchs, part, effectif, color_map, stade_map),
-        "confrontations.html": render_confrontations(matchs, color_map),
         "statistiques.html": render_statistiques(matchs, part, effectif),
     }
 
@@ -1358,10 +1368,12 @@ def main():
     (OUT / "disponibilites.html").write_text(
         render_disponibilites(matchs_current, effectif, disponibilites), encoding="utf-8")
     (OUT / "effectif.html").write_text(render_effectif(effectif, matchs_current), encoding="utf-8")
+    (OUT / "confrontations.html").write_text(
+        render_confrontations(matchs_all, color_map), encoding="utf-8")
     for _, p in effectif.iterrows():
         (OUT / f"joueur-{slugify(p['nom'])}.html").write_text(
             render_player_page(p, matchs_current, part), encoding="utf-8")
-    total_pages += 3 + len(effectif)
+    total_pages += 4 + len(effectif)
 
     print(f"Site généré : {total_pages} pages sur {len(SEASONS)} saison(s) — {SEASONS}")
 
