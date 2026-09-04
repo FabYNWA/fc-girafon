@@ -940,13 +940,12 @@ def player_card(p, linked=True, show_phrase=False):
     postes = [x.strip() for x in str(p["poste"]).split(",")] if pd.notna(p.get("poste")) else []
     postes_html = " ".join(f'<span class="poste-chip">{poste}</span>' for poste in postes)
     phrase = ""
+    if show_phrase and pd.notna(p.get("phrase")) and str(p["phrase"]).strip():
+        phrase = f'<div class="player-phrase">{p["phrase"]}</div>'
     age_html = ""
-    if show_phrase:
-        if pd.notna(p.get("phrase")) and str(p["phrase"]).strip():
-            phrase = f'<div class="player-phrase">{p["phrase"]}</div>'
-        age = compute_age(p.get("date_naissance"))
-        if age is not None:
-            age_html = f'<div class="player-age">{age} ans</div>'
+    age = compute_age(p.get("date_naissance"))
+    if age is not None:
+        age_html = f'<div class="player-age">{age} ans</div>'
     flocage = f'<div class="player-flocage">{p["flocage"]}</div>' if pd.notna(p.get("flocage")) else ""
 
     has_photo = pd.notna(p.get("photo_url")) and str(p.get("photo_url")).strip()
@@ -1142,7 +1141,7 @@ def render_player_page(p, matchs, part):
 
     # --- Onglet Carrière : totaux + historique complet, toutes saisons ---
     carriere_html = f"""
-    <div class="stat-highlight" style="grid-template-columns:repeat(3,1fr);">
+    <div class="stat-highlight stat-highlight-3col">
       <div class="stat-big"><span class="stat-big-num">{nb_matchs}</span><span class="stat-big-label">Matchs joués</span></div>
       <div class="stat-big"><span class="stat-big-num">{nb_buts}</span><span class="stat-big-label">Buts</span></div>
       <div class="stat-big"><span class="stat-big-num">{nb_passes}</span><span class="stat-big-label">Passes D.</span></div>
@@ -1161,7 +1160,7 @@ def render_player_page(p, matchs, part):
         passes_s = int(mine[mine["match_id"].isin(ids_s)]["passes"].sum())
         saisons_html += f"""
         <div class="section-head" style="margin-top:28px;"><h3 style="font-family:var(--font-display);font-size:16px;">Saison {s}</h3></div>
-        <div class="stat-highlight" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px;">
+        <div class="stat-highlight stat-highlight-3col" style="margin-bottom:16px;">
           <div class="stat-big"><span class="stat-big-num">{len(mine_ok_s)}</span><span class="stat-big-label">Matchs joués</span></div>
           <div class="stat-big"><span class="stat-big-num">{buts_s}</span><span class="stat-big-label">Buts</span></div>
           <div class="stat-big"><span class="stat-big-num">{passes_s}</span><span class="stat-big-label">Passes D.</span></div>
