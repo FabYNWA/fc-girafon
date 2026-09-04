@@ -1820,9 +1820,16 @@ table.classement-table.data th.num, table.classement-table.data td.num{
   /* Fiche joueur : le bandeau 3 colonnes (Matchs/Buts/Passes) était fixé
      en style inline, donc jamais affecté par aucune media query — corrigé
      en passant par cette classe, qu'on peut enfin surcharger ici */
-  .stat-highlight-3col{ grid-template-columns:1fr 1fr 1fr; }
-  .stat-highlight-3col .stat-big{ padding:14px 4px; }
-  .stat-highlight-3col .stat-big-num{ font-size:20px; }
+  .stat-highlight-3col{ grid-template-columns:1fr; }
+  .stat-highlight-3col .stat-big{ padding:14px 8px; border-right:none; border-bottom:1px solid rgba(0,0,0,.25); }
+  .stat-highlight-3col .stat-big:last-child{ border-bottom:none; }
+  .stat-highlight-3col .stat-big-num{ font-size:24px; }
+
+  /* Bandeau principal Statistiques : 1 seule colonne sur petit écran plutôt
+     que 2, par sécurité (2 chiffres larges pouvaient encore trop serrer) */
+  .stat-highlight{ grid-template-columns:1fr; }
+  .stat-highlight .stat-big{ border-right:none; border-bottom:1px solid rgba(0,0,0,.25); }
+  .stat-highlight .stat-big:last-child{ border-bottom:none; }
 }
 
 .empty-state{
