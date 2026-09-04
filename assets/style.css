@@ -24,12 +24,14 @@
 
 *{ box-sizing:border-box; }
 
-html{ scroll-behavior:smooth; }
+html{ scroll-behavior:smooth; overflow-x:hidden; max-width:100%; }
 
 body{
   margin:0;
   background:var(--paper);
   color:var(--ink-soft);
+  overflow-x:hidden;
+  max-width:100%;
   font-family:var(--font-body);
   font-size:15px;
   line-height:1.5;
@@ -549,6 +551,8 @@ nav.mainnav a.active{
   text-align:center;
   color:#fff;
   text-shadow:0 1px 3px rgba(0,0,0,.35);
+  min-width:0;
+  overflow-wrap:break-word;
 }
 
 .modal-score-wrap{
@@ -648,6 +652,10 @@ nav.mainnav a.active{
   font-size:14.5px;
   font-weight:500;
   position:relative;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
 .girafon-cell{
@@ -870,16 +878,20 @@ table.data tbody tr.self-team:nth-child(even){ background:#FCEEB0; }
 
 .player-number-bg{
   position:absolute;
+  top:8px;
+  right:8px;
   font-family:var(--font-display);
-  font-size:110px;
+  font-size:15px;
   font-weight:700;
   color:var(--red);
-  opacity:.28;
   line-height:1;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-58%);
   white-space:nowrap;
+  z-index:2;
+  text-shadow:
+    -1px -1px 0 #fff, 1px -1px 0 #fff,
+    -1px  1px 0 #fff, 1px  1px 0 #fff,
+    0px  1.5px 0 #fff, 0px -1.5px 0 #fff,
+    1.5px  0px 0 #fff, -1.5px  0px 0 #fff;
 }
 
 .player-initials{
@@ -1495,6 +1507,7 @@ table.classement-table.data th.num, table.classement-table.data td.num{
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
+  min-width:0;
 }
 
 .lb-bar-track{
@@ -1529,15 +1542,8 @@ table.classement-table.data th.num, table.classement-table.data td.num{
   gap:14px;
 }
 
-/* Si le nombre de cards est impair, la derniere s etire sur toute la largeur
-   au lieu de laisser un trou a cote */
-.comp-card-grid-outer > *:last-child:nth-child(odd){
-  grid-column:1 / -1;
-}
-
 @media (max-width:700px){
   .comp-card-grid-outer{ grid-template-columns:1fr; }
-  .comp-card-grid-outer > *:last-child:nth-child(odd){ grid-column:auto; }
 }
 
 .comp-card{
@@ -1633,6 +1639,10 @@ table.classement-table.data th.num, table.classement-table.data td.num{
   font-weight:600;
   font-size:14.5px;
   flex:1;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
 .confront-record{
@@ -1770,6 +1780,23 @@ table.classement-table.data th.num, table.classement-table.data td.num{
   .matchup-side.home{ order:1; }
   .matchup-center{ order:0; }
   .matchup-side.away{ order:2; }
+}
+
+/* Filet de sécurité mobile : les tableaux larges (historique, classement)
+   défilent horizontalement dans leur propre cadre plutôt que de faire
+   déborder toute la page */
+@media (max-width:600px){
+  table.data{
+    display:block;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    white-space:nowrap;
+  }
+  table.data thead, table.data tbody, table.data tr{ display:table; width:100%; table-layout:auto; }
+  .mini-podium-row{ grid-template-columns:20px 30px 1fr auto; gap:8px; padding:10px 12px; }
+  .mini-podium-value{ font-size:12.5px; }
+  .lb-row{ grid-template-columns:18px 28px 1fr 56px 22px; gap:6px; }
+  .confront-head{ flex-wrap:wrap; }
 }
 
 .empty-state{
