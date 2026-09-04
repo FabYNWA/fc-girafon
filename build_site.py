@@ -1271,6 +1271,7 @@ def main():
     for _, p in effectif.iterrows():
         pages[f"joueur-{slugify(p['nom'])}.html"] = render_player_page(p, matchs, part)
 
+    OUT.mkdir(parents=True, exist_ok=True)
     for name, html in pages.items():
         (OUT / name).write_text(html, encoding="utf-8")
     print("Site généré :", len(pages), "pages —", ", ".join(list(pages.keys())[:8]), "...")
