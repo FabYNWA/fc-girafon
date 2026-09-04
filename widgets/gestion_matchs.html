@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FC Girafon — Gestion des matchs</title>
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root{
+    --red:#E30613; --red-dark:#A80511; --ink:#16171A; --ink-soft:#33343A;
+    --paper:#FFFFFF; --paper-alt:#F4F4F3; --line:#E2E1DC;
+    --win:#1E7A3D; --loss:#A80511; --grey:#6B6B6B;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; background:var(--paper-alt); color:var(--ink-soft);
+    font-family:'Inter',system-ui,sans-serif; font-size:14px; padding-bottom:40px;
+  }
+
+  .topbar{ background:var(--ink); padding:16px 20px; }
+  .topbar h1{
+    font-family:'Oswald',sans-serif; color:#fff; font-size:18px; font-weight:600; margin:0;
+  }
+  .topbar .sub{ color:#9d9d9c; font-size:12px; margin-top:2px; }
+
+  .tabs{ display:flex; background:var(--ink); padding:0 20px; }
+  .tab{
+    padding:12px 18px; cursor:pointer; font-size:13px; font-weight:500; color:#9d9d9c;
+    border-bottom:3px solid transparent; user-select:none;
+  }
+  .tab.active{ color:#fff; border-bottom-color:var(--red); }
+  .panel{ display:none; padding:20px; max-width:640px; margin:0 auto; }
+  .panel.active{ display:block; }
+
+  /* --- Onglet 1 : synchro --- */
+  .match-card{
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--paper); border:1px solid var(--line); border-left:4px solid var(--line);
+    padding:14px 16px; margin-bottom:10px; border-radius:3px;
+  }
+  .match-card.linked{ border-left-color:var(--win); }
+  .match-card-info{ display:flex; flex-direction:column; gap:3px; }
+  .match-card-date{ font-family:'Oswald',sans-serif; font-weight:600; font-size:15px; }
+  .match-card-meta{ font-size:12px; color:var(--grey); }
+
+  .btn{
+    border:none; padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer;
+    color:#fff; border-radius:3px; font-family:'Inter',sans-serif; white-space:nowrap;
+  }
+  .btn-add{ background:var(--win); }
+  .btn-remove{ background:var(--loss); }
+  .btn:disabled{ opacity:.45; cursor:default; }
+  .btn:active{ transform:scale(.97); }
+  .empty{ color:var(--grey); font-style:italic; padding:16px; text-align:center; background:var(--paper); border:1px dashed var(--line); }
+
+  /* --- Onglet 2 : saisie --- */
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:4px; padding:18px; margin-bottom:16px; }
+  .card-label{
+    font-family:'Oswald',sans-serif; font-size:12px; font-weight:600; text-transform:uppercase;
+    letter-spacing:.04em; color:var(--grey); margin-bottom:10px;
+  }
+  select{
+    width:100%; font-size:15px; padding:10px 12px; border:1px solid var(--line);
+    border-radius:3px; background:#fff; font-family:'Inter',sans-serif;
+  }
+
+  .score-card{ display:flex; align-items:center; justify-content:center; gap:24px; }
+  .score-block{ display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .score-team{ font-size:12px; color:var(--grey); font-weight:600; text-transform:uppercase; }
+  .score-value{
+    font-family:'Oswald',sans-serif; font-size:34px; font-weight:700; width:60px; text-align:center;
+  }
+  .score-dash{ font-family:'Oswald',sans-serif; font-size:28px; color:var(--line); }
+  .stepper-btn{
+    width:38px; height:38px; border-radius:50%; border:1px solid var(--line); background:#fff;
+    font-size:20px; font-weight:600; color:var(--ink); cursor:pointer; line-height:1;
+  }
+  .stepper-btn:active{ background:var(--paper-alt); }
+
+  .player-row{
+    display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line);
+  }
+  .player-row:last-child{ border-bottom:none; }
+
+  .toggle-present{
+    flex-shrink:0; width:64px; padding:7px 0; text-align:center; font-size:11.5px; font-weight:700;
+    border-radius:20px; cursor:pointer; user-select:none; border:1px solid var(--line);
+    color:var(--grey); background:var(--paper-alt);
+  }
+  .toggle-present.on{ background:var(--win); color:#fff; border-color:var(--win); }
+
+  .player-name{ flex:1; font-weight:500; font-size:14px; }
+  .player-name.dimmed{ color:var(--line); }
+
+  .mini-stepper{ display:flex; align-items:center; gap:6px; }
+  .mini-stepper button{
+    width:26px; height:26px; border-radius:50%; border:1px solid var(--line); background:#fff;
+    font-size:14px; cursor:pointer; line-height:1; color:var(--ink);
+  }
+  .mini-stepper button:active{ background:var(--paper-alt); }
+  .mini-stepper .val{ width:18px; text-align:center; font-weight:600; font-size:13.5px; }
+  .stat-label{ font-size:9.5px; color:var(--grey); text-align:center; text-transform:uppercase; margin-bottom:2px; }
+  .stat-block{ display:flex; flex-direction:column; align-items:center; }
+
+  .nc-toggle{
+    font-size:10px; font-weight:700; color:var(--grey); border:1px solid var(--line);
+    background:#fff; border-radius:3px; padding:4px 6px; cursor:pointer; flex-shrink:0;
+  }
+  .nc-toggle.on{ background:var(--ink); color:#fff; border-color:var(--ink); }
+
+  .player-controls{ display:flex; align-items:center; gap:14px; }
+  .player-controls.hidden{ visibility:hidden; }
+
+  .submit-bar{ display:flex; align-items:center; gap:16px; margin-top:6px; }
+  .btn-submit{
+    background:var(--red); padding:13px 26px; font-size:14.5px; border-radius:3px; flex:1;
+    font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.03em;
+  }
+  .status-msg{ font-size:13px; font-weight:500; }
+  .status-ok{ color:var(--win); } .status-err{ color:var(--loss); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>FC GIRAFON — GESTION DES MATCHS</h1>
+  <div class="sub">Synchro du formulaire de disponibilité + saisie des résultats</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="sync">Matchs à venir</div>
+  <div class="tab" data-tab="saisie">Saisir un résultat</div>
+</div>
+
+<div id="panel-sync" class="panel active"></div>
+<div id="panel-saisie" class="panel"></div>
+
+<script>
+const $ = (s, el=document) => el.querySelector(s);
+const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
+
+document.addEventListener('click', (e) => {
+  const tab = e.target.closest('.tab');
+  if(!tab) return;
+  $$('.tab').forEach(t => t.classList.remove('active'));
+  $$('.panel').forEach(p => p.classList.remove('active'));
+  tab.classList.add('active');
+  $('#panel-' + tab.dataset.tab).classList.add('active');
+});
+
+// ---------------------------------------------------------------------
+const CONFIG = {
+  MATCHS: 'Matchs',
+  PROCHAINS: 'Prochains_Matchs',
+  PARTICIPATIONS: 'Participations',
+  EFFECTIF: 'Effectif',
+};
+
+let state = { matchs: [], prochains: [], effectif: [] };
+// mémorise les saisies en cours (buts/passes/présence) par joueur, pour l'onglet Saisie
+let saisie = {};
+
+function fmtDate(unixSeconds){
+  if(!unixSeconds) return '';
+  const d = new Date(unixSeconds * 1000);
+  return d.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'});
+}
+
+async function loadAll(){
+  const matchsTable = await grist.docApi.fetchTable(CONFIG.MATCHS);
+  const prochainsTable = await grist.docApi.fetchTable(CONFIG.PROCHAINS);
+  const effectifTable = await grist.docApi.fetchTable(CONFIG.EFFECTIF);
+
+  const toRows = (t) => {
+    const n = t.id.length;
+    const rows = [];
+    for(let i=0;i<n;i++){
+      const row = {id: t.id[i]};
+      for(const key in t) row[key] = t[key][i];
+      rows.push(row);
+    }
+    return rows;
+  };
+
+  state.matchs = toRows(matchsTable);
+  state.prochains = toRows(prochainsTable);
+  state.effectif = toRows(effectifTable);
+
+  if(Object.keys(saisie).length === 0){
+    state.effectif.forEach(p => {
+      saisie[p.id] = { present: true, buts: 0, passes: 0, nc: false };
+    });
+  }
+
+  renderSync();
+  renderSaisie();
+}
+
+// ---------------------------------------------------------------------
+// Onglet 1 : synchro Prochains_Matchs
+// ---------------------------------------------------------------------
+function renderSync(){
+  const programmes = state.matchs.filter(m => m.Statut === 'Programmé');
+  if(programmes.length === 0){
+    $('#panel-sync').innerHTML = '<div class="empty">Aucun match programmé pour le moment.</div>';
+    return;
+  }
+
+  const rows = programmes.map(m => {
+    const existant = state.prochains.find(p => p.Date === m.Date);
+    const dateLabel = fmtDate(m.Date);
+    const btn = existant
+      ? `<button class="btn btn-remove" data-action="remove" data-prochain-id="${existant.id}">Retirer</button>`
+      : `<button class="btn btn-add" data-action="add" data-match-id="${m.id}">+ Ajouter</button>`;
+    return `
+      <div class="match-card ${existant ? 'linked' : ''}">
+        <div class="match-card-info">
+          <span class="match-card-date">${dateLabel} — vs ${m.Adversaire || ''}</span>
+          <span class="match-card-meta">${m.Competition || ''}</span>
+        </div>
+        ${btn}
+      </div>`;
+  });
+
+  $('#panel-sync').innerHTML = rows.join('');
+
+  $$('#panel-sync [data-action="add"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const m = state.matchs.find(x => x.id == btn.dataset.matchId);
+      btn.disabled = true;
+      await grist.docApi.applyUserActions([[
+        'AddRecord', CONFIG.PROCHAINS, null,
+        { Date: m.Date, Formulaire: m.Formulaire }
+      ]]);
+      await loadAll();
+    });
+  });
+
+  $$('#panel-sync [data-action="remove"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      await grist.docApi.applyUserActions([[
+        'RemoveRecord', CONFIG.PROCHAINS, parseInt(btn.dataset.prochainId, 10)
+      ]]);
+      await loadAll();
+    });
+  });
+}
+
+// ---------------------------------------------------------------------
+// Onglet 2 : saisie d'un résultat
+// ---------------------------------------------------------------------
+let scoreGirafon = 0, scoreAdv = 0;
+
+function renderSaisie(){
+  const eligibles = state.matchs
+    .filter(m => m.Statut === 'Programmé')
+    .sort((a,b) => b.Date - a.Date);
+
+  const options = eligibles.map(m =>
+    `<option value="${m.id}">${fmtDate(m.Date)} — vs ${m.Adversaire || ''}</option>`
+  ).join('');
+
+  const playerRows = state.effectif.map(p => {
+    const s = saisie[p.id] || {present:true, buts:0, passes:0, nc:false};
+    return `
+    <div class="player-row" data-player-id="${p.id}">
+      <div class="toggle-present ${s.present ? 'on' : ''}" data-action="toggle-present">${s.present ? 'Présent' : 'Absent'}</div>
+      <div class="player-name ${s.present ? '' : 'dimmed'}">${p.Nom}</div>
+      <div class="player-controls ${s.present ? '' : 'hidden'}">
+        <div class="stat-block">
+          <div class="stat-label">Buts</div>
+          <div class="mini-stepper">
+            <button data-action="buts-minus">−</button>
+            <span class="val" data-role="buts-val">${s.buts}</span>
+            <button data-action="buts-plus">+</button>
+          </div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Passes</div>
+          <div class="mini-stepper">
+            <button data-action="passes-minus">−</button>
+            <span class="val" data-role="passes-val">${s.passes}</span>
+            <button data-action="passes-plus">+</button>
+          </div>
+        </div>
+        <button class="nc-toggle ${s.nc ? 'on' : ''}" data-action="toggle-nc" title="Non comptabilisé">NC</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  $('#panel-saisie').innerHTML = `
+    <div class="card">
+      <div class="card-label">Match concerné</div>
+      <select id="sel-match">${options}</select>
+    </div>
+
+    <div class="card score-card">
+      <div class="score-block">
+        <div class="score-team">FC Girafon</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <button class="stepper-btn" data-score="girafon-minus">−</button>
+          <div class="score-value" id="score-girafon-val">${scoreGirafon}</div>
+          <button class="stepper-btn" data-score="girafon-plus">+</button>
+        </div>
+      </div>
+      <div class="score-dash">—</div>
+      <div class="score-block">
+        <div class="score-team">Adversaire</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <button class="stepper-btn" data-score="adv-minus">−</button>
+          <div class="score-value" id="score-adv-val">${scoreAdv}</div>
+          <button class="stepper-btn" data-score="adv-plus">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Effectif</div>
+      ${playerRows}
+    </div>
+
+    <div class="submit-bar">
+      <button class="btn btn-submit" id="btn-submit-result">Enregistrer le résultat</button>
+    </div>
+    <div class="status-msg" id="submit-status" style="margin-top:10px;"></div>`;
+
+  $('#btn-submit-result').addEventListener('click', submitResult);
+
+  $$('[data-score]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.score;
+      if(action === 'girafon-minus') scoreGirafon = Math.max(0, scoreGirafon - 1);
+      if(action === 'girafon-plus') scoreGirafon++;
+      if(action === 'adv-minus') scoreAdv = Math.max(0, scoreAdv - 1);
+      if(action === 'adv-plus') scoreAdv++;
+      $('#score-girafon-val').textContent = scoreGirafon;
+      $('#score-adv-val').textContent = scoreAdv;
+    });
+  });
+
+  $$('.player-row').forEach(row => {
+    const pid = row.dataset.playerId;
+    const s = saisie[pid];
+
+    $('[data-action="toggle-present"]', row).addEventListener('click', () => {
+      s.present = !s.present;
+      renderSaisie();
+    });
+
+    $('[data-action="toggle-nc"]', row)?.addEventListener('click', () => {
+      s.nc = !s.nc;
+      row.querySelector('[data-action="toggle-nc"]').classList.toggle('on', s.nc);
+    });
+
+    row.querySelector('[data-action="buts-minus"]')?.addEventListener('click', () => {
+      s.buts = Math.max(0, s.buts - 1);
+      row.querySelector('[data-role="buts-val"]').textContent = s.buts;
+    });
+    row.querySelector('[data-action="buts-plus"]')?.addEventListener('click', () => {
+      s.buts++;
+      row.querySelector('[data-role="buts-val"]').textContent = s.buts;
+    });
+    row.querySelector('[data-action="passes-minus"]')?.addEventListener('click', () => {
+      s.passes = Math.max(0, s.passes - 1);
+      row.querySelector('[data-role="passes-val"]').textContent = s.passes;
+    });
+    row.querySelector('[data-action="passes-plus"]')?.addEventListener('click', () => {
+      s.passes++;
+      row.querySelector('[data-role="passes-val"]').textContent = s.passes;
+    });
+  });
+}
+
+async function submitResult(){
+  const statusEl = $('#submit-status');
+  statusEl.textContent = 'Enregistrement...';
+  statusEl.className = 'status-msg';
+
+  const matchId = parseInt($('#sel-match').value, 10);
+  const matchRow = state.matchs.find(m => m.id === matchId);
+
+  const actions = [
+    ['UpdateRecord', CONFIG.MATCHS, matchId, {
+      Statut: 'Joué', Score_Girafon: scoreGirafon, Score_Adversaire: scoreAdv
+    }]
+  ];
+
+  const prochainRow = matchRow && state.prochains.find(p => p.Date === matchRow.Date);
+  if(prochainRow){
+    actions.push(['RemoveRecord', CONFIG.PROCHAINS, prochainRow.id]);
+  }
+
+  Object.entries(saisie).forEach(([playerId, s]) => {
+    if(!s.present) return;
+    actions.push(['AddRecord', CONFIG.PARTICIPATIONS, null, {
+      Match: matchId, Joueur: parseInt(playerId, 10),
+      Buts: s.buts, Passes: s.passes, Comptabilise: !s.nc
+    }]);
+  });
+
+  try{
+    await grist.docApi.applyUserActions(actions);
+    statusEl.textContent = 'Résultat enregistré avec succès.';
+    statusEl.className = 'status-msg status-ok';
+    scoreGirafon = 0; scoreAdv = 0;
+    saisie = {};
+    await loadAll();
+  }catch(err){
+    statusEl.textContent = 'Erreur : ' + err.message;
+    statusEl.className = 'status-msg status-err';
+  }
+}
+
+// ---------------------------------------------------------------------
+grist.ready({requiredAccess: 'full'});
+grist.onRecords(loadAll);
+loadAll();
+</script>
+</body>
+</html>
