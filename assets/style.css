@@ -1529,8 +1529,15 @@ table.classement-table.data th.num, table.classement-table.data td.num{
   gap:14px;
 }
 
+/* Si le nombre de cards est impair, la derniere s etire sur toute la largeur
+   au lieu de laisser un trou a cote */
+.comp-card-grid-outer > *:last-child:nth-child(odd){
+  grid-column:1 / -1;
+}
+
 @media (max-width:700px){
   .comp-card-grid-outer{ grid-template-columns:1fr; }
+  .comp-card-grid-outer > *:last-child:nth-child(odd){ grid-column:auto; }
 }
 
 .comp-card{
