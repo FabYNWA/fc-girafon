@@ -14,7 +14,25 @@ DATA = Path(__file__).parent / "data"
 OUT = Path(__file__).parent / "output"
 
 CLUB = "FC GIRAFON"
-SEASON = None  # déduite automatiquement de Matchs.Saison dans main() — voir compute_season()
+SEASON = None  # saison en cours de génération (change à chaque passage de la boucle dans main())
+SEASONS = []   # toutes les saisons présentes dans les données, la plus récente en premier
+CURRENT_SEASON = None  # la plus récente — celle servie à la racine du site
+
+# Chemin de base absolu du site, à ajuster si le dépôt est renommé (ex. "/" si le
+# dépôt s'appelle <pseudo>.github.io, ou si un nom de domaine personnalisé est branché)
+SITE_BASE = "/fc-girafon/"
+
+# Pages qui existent en une version par saison (archivées dans un sous-dossier
+# pour toutes les saisons sauf la plus récente, qui reste à la racine)
+SEASON_PAGES = {"index.html", "calendrier.html", "championnat.html",
+                 "coupe.html", "confrontations.html", "statistiques.html"}
+
+def season_slug(season):
+    """'2025 / 2026' -> '2025-2026', utilisé comme nom de sous-dossier d'archive."""
+    return season.replace(" / ", "-").replace(" ", "")
+
+# Rempli une fois par appel à generate_season() — voir main()
+_CTX = {"season_path": ""}  # "" à la racine (saison courante), "2025-2026/" en archive
 
 MOIS_FR = ["janvier","février","mars","avril","mai","juin","juillet","août",
            "septembre","octobre","novembre","décembre"]
@@ -24,12 +42,12 @@ JOURS_FR = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"]
 # Chargement des données
 # ---------------------------------------------------------------------------
 
-def compute_season(matchs):
-    """Saison la plus récente présente dans les données (tri par année de début)."""
+def compute_seasons(matchs):
+    """Liste de toutes les saisons présentes, la plus récente en premier."""
     seasons = matchs["saison"].dropna().unique().tolist()
     if not seasons:
-        return "2025 / 2026"
-    return sorted(seasons, key=lambda s: int(s.split("/")[0].strip()))[-1]
+        return ["2025 / 2026"]
+    return sorted(seasons, key=lambda s: int(s.split("/")[0].strip()), reverse=True)
 
 def load():
     matchs = pd.read_csv(DATA / "matchs_2025_2026.csv")
@@ -334,42 +352,67 @@ def build_sticky(matchs):
       </div>
     </div>"""
 
+def page_href(page_name):
+    """URL absolue d'une page : dans le sous-dossier d'archive pour les pages
+    'saison' d'une saison passée, à la racine sinon."""
+    if page_name in SEASON_PAGES:
+        return f"{SITE_BASE}{_CTX['season_path']}{page_name}"
+    return f"{SITE_BASE}{page_name}"
+
+def asset_href(path):
+    """URL absolue d'un fichier statique (assets/...) — toujours la même,
+    quel que soit le sous-dossier dans lequel la page courante est générée."""
+    return f"{SITE_BASE}{path}"
+
+def season_select_html(active_page):
+    """Un vrai sélecteur : chaque option pointe vers l'URL réelle de la page
+    équivalente dans l'autre saison (ou vers son accueil si la page n'existe
+    pas en version archivée)."""
+    target_page = active_page if active_page in SEASON_PAGES else "index.html"
+    options = []
+    for s in SEASONS:
+        slug_path = "" if s == CURRENT_SEASON else season_slug(s) + "/"
+        url = f"{SITE_BASE}{slug_path}{target_page}"
+        selected = "selected" if s == SEASON else ""
+        options.append(f'<option value="{url}" {selected}>Saison {s}</option>')
+    return f"""<div class="season-select">
+      <select onchange="window.location.href=this.value">{''.join(options)}</select>
+    </div>"""
+
 def layout(title, active, body):
     nav_html = "\n".join(
-        f'<a href="{href}" class="{"active" if href == active else ""}">{label}</a>'
+        f'<a href="{page_href(href)}" class="{"active" if href == active else ""}">{label}</a>'
         for href, label in NAV_ITEMS
     )
-    sticky = "" if active == "index.html" else _STICKY_HTML["value"]
+    sticky = "" if active == "index.html" and not _CTX["season_path"] else _STICKY_HTML["value"]
+    logo = asset_href("assets/logo.png")
+    style = asset_href("assets/style.css")
+    home_href = f"{SITE_BASE}index.html"
     return f"""<!doctype html>
 <html lang="fr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title} — {CLUB}</title>
-<link rel="icon" type="image/png" href="assets/logo.png">
+<link rel="icon" type="image/png" href="{logo}">
 <meta property="og:title" content="{title} — {CLUB}">
 <meta property="og:description" content="{CLUB} — FSGT IDF — 94 — résultats, calendrier, effectif et statistiques.">
-<meta property="og:image" content="assets/logo.png">
+<meta property="og:image" content="{logo}">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="{title} — {CLUB}">
-<meta name="twitter:image" content="assets/logo.png">
-<link rel="stylesheet" href="assets/style.css">
+<meta name="twitter:image" content="{logo}">
+<link rel="stylesheet" href="{style}">
 </head>
 <body>
 <div class="topbar">
   <div class="topbar-inner">
-    <a href="index.html" class="brand">
-      <img src="assets/logo.png" alt="Blason {CLUB}">
+    <a href="{home_href}" class="brand">
+      <img src="{logo}" alt="Blason {CLUB}">
       <div class="brand-name">{CLUB}</div>
     </a>
     <nav class="mainnav">{nav_html}</nav>
-    <div class="season-select">
-      <select onchange="if(this.value) window.location.search='?saison='+this.value">
-        <option value="2025 / 2026" {"selected" if SEASON=="2025 / 2026" else ""}>Saison 2025 / 2026</option>
-        <option value="2026 / 2027" {"selected" if SEASON=="2026 / 2027" else ""}>Saison 2026 / 2027</option>
-      </select>
-    </div>
+    {season_select_html(active)}
     <button class="burger" onclick="toggleMobileNav()" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
@@ -476,7 +519,7 @@ def build_match_modal(modal_id, row, home, away, score_html, result_label, rclas
     home_is_girafon = home == CLUB
     def badge(name, is_girafon):
         if is_girafon:
-            return f'<div class="modal-badge girafon"><img src="assets/logo.png" alt="{name}"></div>'
+            return f'<div class="modal-badge girafon"><img src="{asset_href("assets/logo.png")}" alt="{name}"></div>'
         color = team_color(name, color_map)
         return f'<div class="modal-badge" style="background:{color};color:#fff;">{name[:3].upper()}</div>'
 
@@ -561,7 +604,7 @@ def match_card(row, part_summary=None, color_map=None, stade_map=None):
 
     def team_cell(name, extra_cls):
         if name == CLUB:
-            return f'<div class="match-card-team girafon-cell {extra_cls}"><img class="girafon-watermark" src="assets/logo.png" alt="">{name}</div>'
+            return f'<div class="match-card-team girafon-cell {extra_cls}"><img class="girafon-watermark" src="{asset_href("assets/logo.png")}" alt="">{name}</div>'
         return f'<div class="match-card-team {extra_cls}">{name}</div>'
 
     card_html = f"""
@@ -631,7 +674,7 @@ def render_index(matchs, part, annonces, effectif, color_map, stade_map):
 
     def badge(name, is_girafon):
         if is_girafon:
-            return '<div class="crest-badge girafon"><img src="assets/logo.png" alt="{}"></div>'.format(name)
+            return '<div class="crest-badge girafon"><img src="{}" alt="{}"></div>'.format(asset_href('assets/logo.png'), name)
         color = team_color(name, color_map)
         return f'<div class="crest-badge" style="background:{color};color:#fff;">{name[:3].upper()}</div>'
 
@@ -689,7 +732,7 @@ def render_index(matchs, part, annonces, effectif, color_map, stade_map):
     <div class="section alt">
       <div class="container">
         <div class="section-head"><h2>Derniers résultats</h2>
-          <a class="count" href="calendrier.html">Voir tout le calendrier →</a>
+          <a class="count" href="{page_href('calendrier.html')}">Voir tout le calendrier →</a>
         </div>
         {match_grid(recents, part_summary, color_map, stade_map)}
       </div>
@@ -715,7 +758,8 @@ def render_club(club_info, stades):
     def field(name, empty_msg):
         val = info.get(name) if hasattr(info, "get") else None
         if val is not None and pd.notna(val) and str(val).strip():
-            return f'<p class="club-histoire-text">{val}</p>'
+            html_val = str(val).replace("\r\n", "\n").replace("\n", "<br>")
+            return f'<p class="club-histoire-text">{html_val}</p>'
         return f'<div class="empty-state">{empty_msg}</div>'
 
     histoire_html = field("histoire", "L'histoire du club n'a pas encore été renseignée.")
@@ -744,7 +788,7 @@ def render_club(club_info, stades):
     <div class="section">
       <div class="container">
         <div class="club-hero">
-          <img src="assets/logo.png" alt="Blason {CLUB}" class="club-crest">
+          <img src="{asset_href("assets/logo.png")}" alt="Blason {CLUB}" class="club-crest">
           <div>
             <h1 class="club-title">{CLUB}</h1>
             <div class="club-sub">FSGT IDF — 94</div>
@@ -795,7 +839,7 @@ def classement_table(classement, championnat_label):
         return '<div class="empty-state">Aucun classement pour le moment — sera mis à jour après la première journée.</div>'
     trs = []
     for _, r in rows.sort_values("classement").iterrows():
-        self_cls = "self-team" if r["equipe"] == CLUB else ""
+        self_cls = "self-team" if str(r["equipe"]).strip().upper() == CLUB.upper() else ""
         trs.append(f"""<tr class="{self_cls}">
           <td class="num">{int(r['classement'])}</td>
           <td>{r['equipe']}</td>
@@ -893,15 +937,23 @@ def player_card(p, linked=True, show_phrase=False):
         if age is not None:
             age_html = f'<div class="player-age">{age} ans</div>'
     flocage = f'<div class="player-flocage">{p["flocage"]}</div>' if pd.notna(p.get("flocage")) else ""
+
+    has_photo = pd.notna(p.get("photo_url")) and str(p.get("photo_url")).strip()
+    if has_photo:
+        photo_inner = f'<img class="player-photo-img" src="{asset_href(p["photo_url"])}" alt="{p["nom"]}">{numero_bg}'
+    else:
+        photo_inner = f'{numero_bg}<span class="player-initials">{initials(p["nom"])}</span>'
+
     inner = f"""
-        <div class="player-photo">{numero_bg}<span class="player-initials">{initials(p['nom'])}</span></div>
+        <div class="player-photo">{photo_inner}</div>
         <div class="player-name">{p['nom']}</div>
         {flocage}
         <div class="player-postes">{postes_html}</div>
         {age_html}
         {phrase}"""
     if linked:
-        return f'<a class="player-card" href="joueur-{slugify(p["nom"])}.html">{inner}</a>'
+        player_page_name = f"joueur-{slugify(p['nom'])}.html"
+        return f'<a class="player-card" href="{page_href(player_page_name)}">{inner}</a>'
     return f'<div class="player-card">{inner}</div>'
 
 # ---------------------------------------------------------------------------
@@ -1077,7 +1129,7 @@ def render_player_page(p, matchs, part):
     body = f"""
     <div class="section">
       <div class="container">
-        <a href="effectif.html" class="count">&larr; Retour à l'effectif</a>
+        <a href="{page_href('effectif.html')}" class="count">&larr; Retour à l'effectif</a>
         <div class="player-page-grid" style="margin-top:16px;">
           <div>{card_html}</div>
           <div>
@@ -1200,8 +1252,8 @@ def render_statistiques(matchs, part, effectif):
       <div class="stat-big"><span class="stat-big-num">{t['n']}</span><span class="stat-big-label">Nuls</span><span class="stat-big-sub">{t['pctn']}%</span></div>
       <div class="stat-big"><span class="stat-big-num">{t['d']}</span><span class="stat-big-label">Défaites</span><span class="stat-big-sub">{t['pctd']}%</span></div>
       <div class="stat-big"><span class="stat-big-num">{'+' if t['diff']>=0 else ''}{t['diff']}</span><span class="stat-big-label">Différence de buts</span></div>
-      <div class="stat-big"><span class="stat-big-num">{t['bpm']}</span><span class="stat-big-label">Buts marqués / match</span></div>
-      <div class="stat-big"><span class="stat-big-num">{t['bcm']}</span><span class="stat-big-label">Buts encaissés / match</span></div>
+      <div class="stat-big"><span class="stat-big-num">{t['bp']}</span><span class="stat-big-label">Buts marqués</span><span class="stat-big-sub">{t['bpm']}/match</span></div>
+      <div class="stat-big"><span class="stat-big-num">{t['bc']}</span><span class="stat-big-label">Buts encaissés</span><span class="stat-big-sub">{t['bcm']}/match</span></div>
     </div>"""
 
     comp_cards = "".join(
@@ -1247,34 +1299,71 @@ def render_statistiques(matchs, part, effectif):
 # Génération
 # ---------------------------------------------------------------------------
 
-def main():
-    global SEASON
-    matchs, part, effectif, classement, annonces, club_info, adversaires, liens_utiles, stades, disponibilites = load()
-    SEASON = compute_season(matchs)
-    color_map = build_color_map(adversaires)
-    stade_map = build_stade_map(stades)
+# ---------------------------------------------------------------------------
+# Génération
+# ---------------------------------------------------------------------------
 
-    _STICKY_HTML["value"] = build_sticky(matchs)
-    _LIENS_HTML["value"] = build_liens_footer(liens_utiles)
+def generate_season_pages(matchs_all, part, effectif, classement_all, annonces, color_map, stade_map):
+    """Génère les 6 pages 'saison' pour la saison actuellement pointée par SEASON/_CTX,
+    dans le bon dossier (racine pour la saison courante, sous-dossier sinon)."""
+    matchs = matchs_all[matchs_all["saison"] == SEASON].reset_index(drop=True)
+    classement = classement_all[classement_all["saison"] == SEASON].reset_index(drop=True)
 
     pages = {
         "index.html": render_index(matchs, part, annonces, effectif, color_map, stade_map),
-        "club.html": render_club(club_info, stades),
         "calendrier.html": render_calendrier(matchs, part, effectif, color_map, stade_map),
         "championnat.html": render_championnat(matchs, classement, part, effectif, color_map, stade_map),
         "coupe.html": render_coupe(matchs, part, effectif, color_map, stade_map),
         "confrontations.html": render_confrontations(matchs, color_map),
-        "disponibilites.html": render_disponibilites(matchs, effectif, disponibilites),
-        "effectif.html": render_effectif(effectif, matchs),
         "statistiques.html": render_statistiques(matchs, part, effectif),
     }
-    for _, p in effectif.iterrows():
-        pages[f"joueur-{slugify(p['nom'])}.html"] = render_player_page(p, matchs, part)
+
+    folder = OUT / _CTX["season_path"] if _CTX["season_path"] else OUT
+    folder.mkdir(parents=True, exist_ok=True)
+    for name, html in pages.items():
+        (folder / name).write_text(html, encoding="utf-8")
+    return len(pages)
+
+def main():
+    global SEASON, SEASONS, CURRENT_SEASON
+    matchs_all, part, effectif, classement_all, annonces, club_info, adversaires, liens_utiles, stades, disponibilites = load()
+
+    SEASONS = compute_seasons(matchs_all)
+    CURRENT_SEASON = SEASONS[0]
+    color_map = build_color_map(adversaires)
+    stade_map = build_stade_map(stades)
+
+    # Le bandeau sticky et les liens de pied de page reflètent toujours la saison
+    # courante, sur TOUTES les pages, y compris quand on navigue dans une archive
+    matchs_current = matchs_all[matchs_all["saison"] == CURRENT_SEASON].reset_index(drop=True)
+    _STICKY_HTML["value"] = build_sticky(matchs_current)
+    _LIENS_HTML["value"] = build_liens_footer(liens_utiles)
 
     OUT.mkdir(parents=True, exist_ok=True)
-    for name, html in pages.items():
-        (OUT / name).write_text(html, encoding="utf-8")
-    print("Site généré :", len(pages), "pages —", ", ".join(list(pages.keys())[:8]), "...")
+    total_pages = 0
+
+    # Une passe par saison : la plus récente à la racine, les autres archivées
+    # dans un sous-dossier (ex. 2025-2026/) — voir SITE_BASE / season_slug()
+    for s in SEASONS:
+        SEASON = s
+        _CTX["season_path"] = "" if s == CURRENT_SEASON else season_slug(s) + "/"
+        total_pages += generate_season_pages(matchs_all, part, effectif, classement_all,
+                                              annonces, color_map, stade_map)
+
+    # Pages hors saison : une seule version, toujours à la racine, reflète
+    # l'effectif et les informations actuelles du club (pas d'archive par saison)
+    SEASON = CURRENT_SEASON
+    _CTX["season_path"] = ""
+    (OUT / "club.html").write_text(render_club(club_info, stades), encoding="utf-8")
+    (OUT / "disponibilites.html").write_text(
+        render_disponibilites(matchs_current, effectif, disponibilites), encoding="utf-8")
+    (OUT / "effectif.html").write_text(render_effectif(effectif, matchs_current), encoding="utf-8")
+    for _, p in effectif.iterrows():
+        (OUT / f"joueur-{slugify(p['nom'])}.html").write_text(
+            render_player_page(p, matchs_current, part), encoding="utf-8")
+    total_pages += 3 + len(effectif)
+
+    print(f"Site généré : {total_pages} pages sur {len(SEASONS)} saison(s) — {SEASONS}")
 
 if __name__ == "__main__":
     main()
