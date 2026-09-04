@@ -1,0 +1,67 @@
+name: Générer et déployer le site FC Girafon
+
+on:
+  schedule:
+    - cron: "0 5,11,17 * * *"  # 3 fois par jour (05h, 11h, 17h UTC)
+  workflow_dispatch: {}         # bouton "Run workflow" manuel dans l'onglet Actions
+  push:
+    branches: [main]
+    paths:
+      - "build_site.py"
+      - "fetch_grist_data.py"
+      - "assets/**"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installer les dépendances
+        run: pip install pandas requests
+
+      - name: Récupérer les données depuis Grist
+        env:
+          GRIST_API_KEY: ${{ secrets.GRIST_API_KEY }}
+          GRIST_DOC_ID: ${{ secrets.GRIST_DOC_ID }}
+        run: python fetch_grist_data.py
+
+      - name: Générer le site
+        run: python build_site.py
+
+      - name: Copier les fichiers statiques (CSS, logo)
+        run: |
+          mkdir -p output/assets
+          cp assets/style.css output/assets/
+          cp assets/logo.png output/assets/
+
+      - name: Préparer le déploiement Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: output
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Déployer sur GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
