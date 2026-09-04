@@ -824,6 +824,7 @@ def render_calendrier(matchs, part, effectif, color_map, stade_map):
           <h2>Résultats &amp; calendrier — saison {SEASON}</h2>
           <span class="count">{len(ordered)} rencontres</span>
         </div>
+        <p class="hint-text">Clique sur un match pour voir ses détails.</p>
         {match_grid(ordered, part_summary, color_map, stade_map)}
       </div>
     </div>"""
@@ -896,6 +897,7 @@ def render_championnat(matchs, classement, part, effectif, color_map, stade_map)
     <div class="section">
       <div class="container">
         <div class="subtabs">{tabs_html}</div>
+        <p class="hint-text">Clique sur un match pour voir ses détails.</p>
         {panels_html}
       </div>
     </div>
@@ -923,6 +925,7 @@ def render_coupe(matchs, part, effectif, color_map, stade_map):
           <h2>Coupe</h2>
           <span class="count">{len(coupe)} rencontres</span>
         </div>
+        <p class="hint-text">Clique sur un match pour voir ses détails.</p>
         {match_grid(coupe, part_summary, color_map, stade_map)}
       </div>
     </div>"""
@@ -1087,6 +1090,7 @@ def render_effectif(effectif, matchs):
           <h2>Effectif</h2>
           <span class="count">{len(effectif)} joueurs</span>
         </div>
+        <p class="hint-text">Clique sur un joueur pour voir son historique détaillé.</p>
         <div class="roster-grid">{cards}</div>
       </div>
     </div>"""
