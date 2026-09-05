@@ -1036,7 +1036,9 @@ def render_disponibilites(matchs, effectif, disponibilites):
       <div class="container">
         <div class="section-head"><h2>Disponibilités</h2></div>
         <p style="color:var(--grey);font-size:14px;margin-bottom:20px;">
-          Indique si tu seras présent au prochain match — ça prend 10 secondes. Le site d'actualise toutes les heures, donc la réponse sera prise en compte dans l'heure qui suit.
+          Indique si tu seras présent au prochain match — ça prend 10 secondes. 
+          
+          Le site s'actualise toutes les heures, donc la réponse sera prise en compte dans l'heure qui suit.
         </p>
         {content}
         {reponses_html}
