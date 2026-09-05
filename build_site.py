@@ -994,7 +994,7 @@ def render_disponibilites(matchs, effectif, disponibilites):
     if len(programmes) > 0:
         prochain = programmes.iloc[0]
         match_date_str = date_fr(prochain["date_dt"])
-        rows = disponibilites[disponibilites["Match"].str.contains(str(prochain["date"]), na=False)] if "Match" in disponibilites.columns else disponibilites.iloc[0:0]
+        rows = disponibilites[disponibilites["match_date"] == prochain["date"]] if "match_date" in disponibilites.columns else disponibilites.iloc[0:0]
 
         groups = {"Présent": [], "Absent": [], "Incertain": []}
         repondants = set()
@@ -1029,7 +1029,7 @@ def render_disponibilites(matchs, effectif, disponibilites):
       <div class="container">
         <div class="section-head"><h2>Disponibilités</h2></div>
         <p style="color:var(--grey);font-size:14px;margin-bottom:20px;">
-          Indique si tu seras présent au prochain match — ça prend 10 secondes. Les réponses sont actualisées 3 x par jour (pas en temps réel).
+          Indique si tu seras présent au prochain match — ça prend 10 secondes.
         </p>
         {content}
         {reponses_html}
@@ -1176,8 +1176,8 @@ def render_player_page(p, matchs, part):
       <div class="container">
         <a href="{page_href('effectif.html')}" class="count">&larr; Retour à l'effectif</a>
         <div class="player-page-grid" style="margin-top:16px;">
-          <div>{card_html}</div>
-          <div>
+          <div class="player-page-col">{card_html}</div>
+          <div class="player-page-col">
             <div class="subtabs">
               <button class="active" onclick="showSub('carriere')">Carrière</button>
               <button onclick="showSub('parsaison')">Par saison</button>
