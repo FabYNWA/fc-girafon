@@ -1000,6 +1000,11 @@ def render_disponibilites(matchs, effectif, disponibilites):
         prochain = programmes.iloc[0]
         match_date_str = date_fr(prochain["date_dt"])
         rows = disponibilites[disponibilites["match_date"] == prochain["date"]] if "match_date" in disponibilites.columns else disponibilites.iloc[0:0]
+        # Un joueur peut soumettre le formulaire plusieurs fois (changement d'avis,
+        # test...) — Grist ajoute une ligne à chaque fois sans écraser l'ancienne.
+        # On ne garde que sa dernière réponse (les lignes arrivent dans l'ordre
+        # de création, donc la dernière occurrence est la plus récente).
+        rows = rows.drop_duplicates(subset=["joueur"], keep="last")
 
         groups = {"Présent": [], "Absent": [], "Incertain": []}
         repondants = set()
