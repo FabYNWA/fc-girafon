@@ -2,7 +2,7 @@ name: Générer et déployer le site FC Girafon
 
 on:
   schedule:
-    - cron: "0 5,11,17 * * *"  # 3 fois par jour (05h, 11h, 17h UTC)
+    - cron: "0 * * * *"  # toutes les heures, à l'heure pile (UTC)
   workflow_dispatch: {}         # bouton "Run workflow" manuel dans l'onglet Actions
   push:
     branches: [main]
