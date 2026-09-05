@@ -1001,9 +1001,16 @@ def render_disponibilites(matchs, effectif, disponibilites):
         for _, r in rows.iterrows():
             rep = r.get("reponse")
             nom = r.get("joueur")
-            if pd.notna(rep) and pd.notna(nom) and rep in groups:
-                groups[rep].append(nom)
-                repondants.add(nom)
+            if pd.isna(rep) or pd.isna(nom):
+                continue
+            # Grist peut stocker un emoji dans la valeur du choix elle-même
+            # (ex. "✅ Présent") plutôt qu'un simple habillage visuel — on
+            # matche donc sur la présence du mot, pas l'égalité stricte.
+            for key in groups:
+                if key in str(rep):
+                    groups[key].append(nom)
+                    repondants.add(nom)
+                    break
 
         sans_reponse = [n for n in effectif["nom"].tolist() if n not in repondants]
 
@@ -1029,7 +1036,7 @@ def render_disponibilites(matchs, effectif, disponibilites):
       <div class="container">
         <div class="section-head"><h2>Disponibilités</h2></div>
         <p style="color:var(--grey);font-size:14px;margin-bottom:20px;">
-          Indique si tu seras présent au prochain match — ça prend 10 secondes.
+          Indique si tu seras présent au prochain match — ça prend 10 secondes. Le site d'actualise toutes les heures, donc la réponse sera prise en compte dans l'heure qui suit.
         </p>
         {content}
         {reponses_html}
