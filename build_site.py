@@ -72,6 +72,12 @@ def slugify(name):
     n = re.sub(r"[^a-zA-Z0-9]+", "-", n).strip("-").lower()
     return n
 
+def nl2br(text):
+    """Convertit les retours à la ligne saisis dans Grist en <br> HTML —
+    sans ça, un texte multi-lignes s'affiche collé sur une seule ligne
+    (le HTML ignore les sauts de ligne bruts par défaut)."""
+    return str(text).replace("\r\n", "\n").replace("\n", "<br>")
+
 def date_fr(dt, with_weekday=False):
     if pd.isna(dt):
         return ""
@@ -710,7 +716,7 @@ def render_index(matchs, part, annonces, effectif, color_map, stade_map):
             f"""<div class="announce">
                   <div class="announce-date">{r['date_publication']}</div>
                   <div class="announce-title">{r['titre']}</div>
-                  <div class="announce-text">{r['texte']}</div>
+                  <div class="announce-text">{nl2br(r['texte'])}</div>
                 </div>"""
             for _, r in annonces.sort_values("date_publication", ascending=False).iterrows()
         )
@@ -758,8 +764,7 @@ def render_club(club_info, stades):
     def field(name, empty_msg):
         val = info.get(name) if hasattr(info, "get") else None
         if val is not None and pd.notna(val) and str(val).strip():
-            html_val = str(val).replace("\r\n", "\n").replace("\n", "<br>")
-            return f'<p class="club-histoire-text">{html_val}</p>'
+            return f'<p class="club-histoire-text">{nl2br(val)}</p>'
         return f'<div class="empty-state">{empty_msg}</div>'
 
     histoire_html = field("histoire", "L'histoire du club n'a pas encore été renseignée.")
@@ -1035,9 +1040,10 @@ def render_disponibilites(matchs, effectif, disponibilites):
     <div class="section">
       <div class="container">
         <div class="section-head"><h2>Disponibilités</h2></div>
+        <p style="color:var(--grey);font-size:14px;margin-bottom:6px;">
+          Indique si tu seras présent au prochain match — ça prend 10 secondes.
+        </p>
         <p style="color:var(--grey);font-size:14px;margin-bottom:20px;">
-          Indique si tu seras présent au prochain match — ça prend 10 secondes. 
-          
           Le site s'actualise toutes les heures, donc la réponse sera prise en compte dans l'heure qui suit.
         </p>
         {content}
