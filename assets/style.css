@@ -906,6 +906,10 @@ table.data tbody tr.self-team:nth-child(even){ background:#FCEEB0; }
   padding-bottom:14px;
   display:block;
   color:inherit;
+  min-width:0;
+  max-width:100%;
+  width:100%;
+  box-sizing:border-box;
 }
 
 .player-name{
@@ -1292,6 +1296,11 @@ table.data tbody tr.self-team:nth-child(even){ background:#FCEEB0; }
   grid-template-columns:220px 1fr;
   gap:24px;
   align-items:start;
+}
+
+.player-page-col{
+  min-width:0;
+  max-width:100%;
 }
 
 @media (max-width:700px){
