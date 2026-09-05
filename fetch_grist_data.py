@@ -42,6 +42,15 @@ def fetch_table(table_id):
     return rows
 
 
+def get_any(r, *keys):
+    """Essaie plusieurs variantes de nom de colonne (utile pour les accents :
+    Grist peut générer un identifiant de colonne \"Réponse\" ou \"Reponse\"
+    selon la façon dont elle a été créée/renommée)."""
+    for k in keys:
+        if k in r and r[k] not in (None, ""):
+            return r[k]
+    return None
+
 def unlist(value):
     """Grist encode les colonnes de type liste (Choice List, Reference List,
     pièces jointes) sous la forme ['L', v1, v2, ...]. On enlève ce marqueur."""
@@ -241,15 +250,20 @@ def main():
     # -----------------------------------------------------------------
     dispo_out = []
     for r in disponibilites_raw:
-        prochain_id = r.get("Match")
-        joueur_id = r.get("Joueur")
+        prochain_id = get_any(r, "Match", "match")
+        joueur_id = get_any(r, "Joueur", "joueur")
+        reponse = get_any(r, "Reponse", "Réponse", "réponse", "reponse")
         dispo_out.append({
             "match_date": date_prochain_par_id.get(prochain_id, ""),
             "joueur": nom_par_id.get(joueur_id, "") if joueur_id else "",
-            "reponse": r.get("Reponse", ""),
+            "reponse": reponse or "",
         })
     pd.DataFrame(dispo_out, columns=["match_date", "joueur", "reponse"]).to_csv(
         DATA_DIR / "disponibilites.csv", index=False)
+
+    if disponibilites_raw:
+        print("  Colonnes brutes vues dans Disponibilites (1ère ligne) :", list(disponibilites_raw[0].keys()))
+        print("  Aperçu converti :", dispo_out[:3])
 
     print(f"OK — {len(matchs_out)} matchs, {len(part_out)} participations, "
           f"{len(effectif_out)} joueurs, {len(classement_out)} lignes de classement.")
