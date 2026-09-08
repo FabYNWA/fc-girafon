@@ -652,7 +652,36 @@ def match_grid(rows, part_summary=None, color_map=None, stade_map=None):
 # Page Accueil
 # ---------------------------------------------------------------------------
 
+def annonces_actives(annonces):
+    """Ne garde que les annonces dont la date de publication est passée (ou
+    absente) et dont la date d'expiration n'est pas encore atteinte (ou absente)."""
+    today = date.today()
+
+    def parse(value):
+        value = str(value).strip()
+        if not value or value.lower() == "nan":
+            return None
+        try:
+            return datetime.strptime(value, "%d/%m/%Y").date()
+        except ValueError:
+            return None
+
+    def is_active(row):
+        pub = parse(row.get("date_publication"))
+        exp = parse(row.get("date_expiration"))
+        if pub is not None and pub > today:
+            return False
+        if exp is not None and exp < today:
+            return False
+        return True
+
+    if len(annonces) == 0:
+        return annonces
+    return annonces[annonces.apply(is_active, axis=1)]
+
+
 def render_index(matchs, part, annonces, effectif, color_map, stade_map):
+    annonces = annonces_actives(annonces)
     part_summary = build_participation_summary(part, effectif['nom'].tolist())
     joues = matchs_comptabilises(matchs).sort_values("date_dt")
     programmes = matchs[matchs["statut"] == "Programmé"].sort_values("date_dt")
