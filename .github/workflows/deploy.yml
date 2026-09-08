@@ -4,6 +4,8 @@ on:
   schedule:
     - cron: "0 * * * *"  # toutes les heures, à l'heure pile (UTC)
   workflow_dispatch: {}         # bouton "Run workflow" manuel dans l'onglet Actions
+  repository_dispatch:
+    types: [grist-update]       # déclenché à distance dès qu'une table Grist liée au site change
   push:
     branches: [main]
     paths:
