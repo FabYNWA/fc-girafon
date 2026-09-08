@@ -2,7 +2,7 @@ name: Générer et déployer le site FC Girafon
 
 on:
   schedule:
-    - cron: "0 * * * *"  # toutes les heures, à l'heure pile (UTC)
+    - cron: "0 5 * * *"  # une fois par jour à 5h UTC, en filet de sécurité (le webhook Grist gère le temps réel)
   workflow_dispatch: {}         # bouton "Run workflow" manuel dans l'onglet Actions
   repository_dispatch:
     types: [grist-update]       # déclenché à distance dès qu'une table Grist liée au site change
