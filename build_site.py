@@ -741,13 +741,18 @@ def render_index(matchs, part, annonces, effectif, color_map, stade_map):
     if len(annonces) == 0:
         annonces_html = '<div class="empty-state">Aucune annonce publiée pour le moment.</div>'
     else:
+        annonces_sorted = annonces.copy()
+        annonces_sorted["_date_tri"] = pd.to_datetime(
+            annonces_sorted["date_publication"], format="%d/%m/%Y", errors="coerce"
+        )
+        annonces_sorted = annonces_sorted.sort_values("_date_tri", ascending=False, na_position="last")
         annonces_html = "\n".join(
             f"""<div class="announce">
                   <div class="announce-date">{r['date_publication']}</div>
                   <div class="announce-title">{r['titre']}</div>
                   <div class="announce-text">{nl2br(r['texte'])}</div>
                 </div>"""
-            for _, r in annonces.sort_values("date_publication", ascending=False).iterrows()
+            for _, r in annonces_sorted.iterrows()
         )
 
     recents = joues.sort_values("date_dt", ascending=False).head(3)
