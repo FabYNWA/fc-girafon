@@ -1699,10 +1699,16 @@ table.classement-table.data th.num, table.classement-table.data td.num{
 
 .grist-dispo-frame{
   width:100%;
-  min-height:280px;
+  height:480px;
   border:1px solid var(--grey-line);
   border-radius:8px;
   margin-top:36px;
+}
+
+@media (max-width: 720px){
+  .grist-dispo-frame{
+    height:1100px;
+  }
 }
 
 .dispo-grid{
