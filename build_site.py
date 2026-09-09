@@ -1016,6 +1016,10 @@ def player_card(p, linked=True, show_phrase=False):
 # À remplacer par l'URL du formulaire Grist une fois publié (Grist > icône Partager > Formulaire).
 GRIST_FORM_URL = "https://fabienbois.getgrist.com/forms/28SnamJGooU9KTJu7vEXbX/31"
 
+# Page "Widget disponibilités" (widget personnalisé), publiée en lecture seule
+# via Grist > icône Partager > Formulaire/Page publique, avec ?embed=true.
+GRIST_DISPO_WIDGET_URL = "https://fabienbois.getgrist.com/nY8Yj7GXFW8D/FC-Girafon/p/13?embed=true"
+
 def render_disponibilites(matchs, effectif, disponibilites):
     if GRIST_FORM_URL:
         content = f'<iframe src="{GRIST_FORM_URL}" class="grist-form-frame" title="Formulaire de disponibilité"></iframe>'
@@ -1027,53 +1031,9 @@ def render_disponibilites(matchs, effectif, disponibilites):
           <code>GRIST_FORM_URL</code> en haut du script de génération.
         </div>"""
 
-    programmes = matchs[matchs["statut"] == "Programmé"].sort_values("date_dt")
-    reponses_html = '<div class="empty-state">Aucun match à venir programmé pour le moment.</div>'
-
-    if len(programmes) > 0:
-        prochain = programmes.iloc[0]
-        match_date_str = date_fr(prochain["date_dt"])
-        rows = disponibilites[disponibilites["match_date"] == prochain["date"]] if "match_date" in disponibilites.columns else disponibilites.iloc[0:0]
-        # Un joueur peut soumettre le formulaire plusieurs fois (changement d'avis,
-        # test...) — Grist ajoute une ligne à chaque fois sans écraser l'ancienne.
-        # On ne garde que sa dernière réponse (les lignes arrivent dans l'ordre
-        # de création, donc la dernière occurrence est la plus récente).
-        rows = rows.drop_duplicates(subset=["joueur"], keep="last")
-
-        groups = {"Présent": [], "Absent": [], "Incertain": []}
-        repondants = set()
-        for _, r in rows.iterrows():
-            rep = r.get("reponse")
-            nom = r.get("joueur")
-            if pd.isna(rep) or pd.isna(nom):
-                continue
-            # Grist peut stocker un emoji dans la valeur du choix elle-même
-            # (ex. "✅ Présent") plutôt qu'un simple habillage visuel — on
-            # matche donc sur la présence du mot, pas l'égalité stricte.
-            for key in groups:
-                if key in str(rep):
-                    groups[key].append(nom)
-                    repondants.add(nom)
-                    break
-
-        sans_reponse = [n for n in effectif["nom"].tolist() if n not in repondants]
-
-        DISPO_CLASS = {"Présent": "dispo-present", "Absent": "dispo-absent", "Incertain": "dispo-incertain"}
-        cols = "".join(f"""
-        <div class="dispo-col">
-          <div class="dispo-col-head {DISPO_CLASS.get(key, '')}">{key} <span>({len(names)})</span></div>
-          <div class="chip-row">{"".join(f'<span class="chip chip-present">{n}</span>' for n in names) or '<span class="empty-inline">—</span>'}</div>
-        </div>""" for key, names in groups.items())
-
-        cols += f"""
-        <div class="dispo-col">
-          <div class="dispo-col-head" style="background:#6b6b6b;">Sans réponse <span>({len(sans_reponse)})</span></div>
-          <div class="chip-row">{"".join(f'<span class="chip chip-absent">{n}</span>' for n in sans_reponse) or '<span class="empty-inline">—</span>'}</div>
-        </div>"""
-
-        reponses_html = f"""
-        <div class="section-head" style="margin-top:36px;"><h2>Réponses pour le {match_date_str} vs {prochain['adversaire']}</h2></div>
-        <div class="dispo-grid">{cols}</div>"""
+    reponses_html = f"""
+    <iframe src="{GRIST_DISPO_WIDGET_URL}" class="grist-dispo-frame"
+            title="Réponses de disponibilité en direct" loading="lazy"></iframe>"""
 
     body = f"""
     <div class="section">
@@ -1083,13 +1043,14 @@ def render_disponibilites(matchs, effectif, disponibilites):
           Indique si tu seras présent au prochain match — ça prend 10 secondes.
         </p>
         <p style="color:var(--grey);font-size:14px;margin-bottom:20px;">
-          Le site s'actualise toutes les heures, donc la réponse sera prise en compte dans l'heure qui suit.
+          Les réponses ci-dessous s'affichent en direct, dès que quelqu'un répond.
         </p>
         {content}
         {reponses_html}
       </div>
     </div>"""
     return layout("Disponibilités", "disponibilites.html", body)
+
 
 def render_confrontations(matchs, color_map):
     joues = matchs[matchs["statut"] == "Joué"].dropna(subset=["adversaire"])
