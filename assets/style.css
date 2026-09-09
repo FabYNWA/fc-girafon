@@ -1697,6 +1697,14 @@ table.classement-table.data th.num, table.classement-table.data td.num{
   border:1px solid var(--grey-line);
 }
 
+.grist-dispo-frame{
+  width:100%;
+  min-height:280px;
+  border:1px solid var(--grey-line);
+  border-radius:8px;
+  margin-top:36px;
+}
+
 .dispo-grid{
   display:grid;
   grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
