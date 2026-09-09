@@ -1014,7 +1014,7 @@ def player_card(p, linked=True, show_phrase=False):
 # ---------------------------------------------------------------------------
 
 # À remplacer par l'URL du formulaire Grist une fois publié (Grist > icône Partager > Formulaire).
-GRIST_FORM_URL = "https://docs.getgrist.com/forms/b75z7NDjzzYgMkzT8BGu4k/31"
+GRIST_FORM_URL = "https://fabienbois.getgrist.com/forms/28SnamJGooU9KTJu7vEXbX/31"
 
 def render_disponibilites(matchs, effectif, disponibilites):
     if GRIST_FORM_URL:
