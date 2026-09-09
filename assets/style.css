@@ -663,8 +663,11 @@ nav.mainnav a.active{
 
 .girafon-cell{
   position:relative;
-  display:inline-block;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   overflow:visible;
+  text-align:center !important;
 }
 
 .team-name-text{
@@ -685,6 +688,16 @@ nav.mainnav a.active{
 }
 
 .match-card-team.home{ text-align:right; }
+
+@media (max-width: 480px){
+  .match-card-team{
+    white-space:normal;
+    overflow:visible;
+    text-overflow:unset;
+    font-size:12.5px;
+    line-height:1.25;
+  }
+}
 
 .match-card-score{
   font-family:var(--font-display);
