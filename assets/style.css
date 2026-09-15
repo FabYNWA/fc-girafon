@@ -656,10 +656,9 @@ nav.mainnav a.active{
   font-weight:500;
   position:relative;
   min-width:0;
-  overflow:visible;
-  text-overflow:unset;
-  white-space:normal;
-  line-height:1.25;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
 .girafon-cell{
@@ -1826,14 +1825,17 @@ table.classement-table.data th.num, table.classement-table.data td.num{
 /* Filet de sécurité mobile : les tableaux larges (historique, classement)
    défilent horizontalement dans leur propre cadre plutôt que de faire
    déborder toute la page */
+.table-scroll{
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.table-scroll table.data{
+  width:max-content;
+  min-width:100%;
+}
+
 @media (max-width:600px){
-  table.data{
-    display:block;
-    overflow-x:auto;
-    -webkit-overflow-scrolling:touch;
-    white-space:nowrap;
-  }
-  table.data thead, table.data tbody, table.data tr{ display:table; width:100%; table-layout:auto; }
+  table.data{ white-space:nowrap; }
   .mini-podium-row{ grid-template-columns:20px 30px 1fr auto; gap:8px; padding:10px 12px; }
   .mini-podium-value{ font-size:12.5px; }
   .lb-row{ grid-template-columns:18px 28px 1fr 56px 22px; gap:6px; }
