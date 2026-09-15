@@ -73,6 +73,9 @@ def slugify(name):
     return n
 
 def alpha_key(name):
+    """Clé de tri alphabétique insensible aux accents (ex: 'É' trié comme 'E'),
+    pour éviter qu'un nom accentué se retrouve après 'Z' à cause du tri
+    Unicode par défaut de Python."""
     return unicodedata.normalize("NFKD", str(name)).encode("ascii", "ignore").decode().upper()
 
 def nl2br(text):
@@ -897,14 +900,14 @@ def classement_table(classement, championnat_label):
           <td class="num">{r['buts_contre']}</td>
           <td class="num">{r['unites_administratives']}</td>
         </tr>""")
-    return f"""<table class="data classement-table">
+    return f"""<div class="table-scroll"><table class="data classement-table">
       <thead><tr>
         <th class="num">#</th><th>Équipe</th><th class="num">MJ</th><th class="num">Pts</th><th class="num">Diff.</th>
         <th class="num">V</th><th class="num">N</th><th class="num">D</th><th class="num">F</th>
         <th class="num">BP</th><th class="num">BC</th><th class="num">U.A.</th>
       </tr></thead>
       <tbody>{''.join(trs)}</tbody>
-    </table>"""
+    </table></div>"""
 
 def render_championnat(matchs, classement, part, effectif, color_map, stade_map):
     part_summary = build_participation_summary(part, effectif['nom'].tolist())
@@ -1081,9 +1084,9 @@ def render_confrontations(matchs, color_map):
             <span class="confront-name">{adv}</span>
             <span class="confront-record">{v}V {n}N {d}D · {bp}-{bc}</span>
           </div>
-          <table class="data">
+          <div class="table-scroll"><table class="data">
             <tbody>{rows_html}</tbody>
-          </table>
+          </table></div>
         </div>""")
 
     body = f"""
@@ -1152,10 +1155,10 @@ def render_player_page(p, matchs, part):
         body_rows = "".join(match_row_html(r) for _, r in rows.iterrows())
         if not body_rows:
             return '<div class="empty-state">Aucun match enregistré pour ce joueur.</div>'
-        return f"""<table class="data">
+        return f"""<div class="table-scroll"><table class="data">
           <thead><tr><th>Date</th><th>Compétition</th><th>Match</th><th class="num">Résultat</th><th>Perf.</th></tr></thead>
           <tbody>{body_rows}</tbody>
-        </table>"""
+        </table></div>"""
 
     # --- Onglet Carrière : totaux + historique complet, toutes saisons ---
     carriere_html = f"""
