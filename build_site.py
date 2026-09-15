@@ -1058,7 +1058,7 @@ def render_disponibilites(matchs, effectif, disponibilites):
 def render_confrontations(matchs, color_map):
     joues = matchs[matchs["statut"] == "Joué"].dropna(subset=["adversaire"])
     cards = []
-    for adv, grp in sorted(joues.groupby("adversaire"), key=lambda kv: alphakey(kv[0])):
+    for adv, grp in sorted(joues.groupby("adversaire"), key=lambda kv: alpha_key(kv[0])):
         grp = grp.sort_values("date_dt", ascending=False)
         v = (grp["score_girafon"] > grp["score_adversaire"]).sum()
         d = (grp["score_girafon"] < grp["score_adversaire"]).sum()
