@@ -72,6 +72,9 @@ def slugify(name):
     n = re.sub(r"[^a-zA-Z0-9]+", "-", n).strip("-").lower()
     return n
 
+def alpha_key(name):
+    return unicodedata.normalize("NFKD", str(name)).encode("ascii", "ignore").decode().upper()
+
 def nl2br(text):
     """Convertit les retours à la ligne saisis dans Grist en <br> HTML —
     sans ça, un texte multi-lignes s'affiche collé sur une seule ligne
