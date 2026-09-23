@@ -241,8 +241,19 @@ def main():
     # -----------------------------------------------------------------
     # Stades
     # -----------------------------------------------------------------
-    stades_out = [{"nom": r.get("Nom", ""), "latitude": r.get("Latitude"), "longitude": r.get("Longitude")}
-                  for r in stades_raw]
+    def parse_latlon(adresse):
+        parts = [p.strip() for p in str(adresse or "").split(",")]
+        if len(parts) == 2:
+            try:
+                return float(parts[0]), float(parts[1])
+            except ValueError:
+                pass
+        return None, None
+
+    stades_out = []
+    for r in stades_raw:
+        lat, lon = parse_latlon(r.get("Adresse"))
+        stades_out.append({"nom": r.get("Nom", ""), "latitude": lat, "longitude": lon})
     pd.DataFrame(stades_out, columns=["nom", "latitude", "longitude"]).to_csv(DATA_DIR / "stades.csv", index=False)
 
     # -----------------------------------------------------------------
