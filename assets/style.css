@@ -656,9 +656,10 @@ nav.mainnav a.active{
   font-weight:500;
   position:relative;
   min-width:0;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
+  overflow:visible;
+  text-overflow:unset;
+  white-space:normal;
+  line-height:1.25;
 }
 
 .girafon-cell{
