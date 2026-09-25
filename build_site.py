@@ -323,6 +323,19 @@ NAV_ITEMS = [
     ("disponibilites.html", "Disponibilités"),
 ]
 
+# Barre de navigation basse, affichée uniquement quand le site est lancé en
+# PWA installée sur mobile (voir @media (display-mode: standalone) dans le CSS).
+BOTTOM_NAV_ICONS = {
+    "index.html": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>',
+    "calendrier.html": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>',
+    "statistiques.html": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>',
+    "disponibilites.html": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>',
+    "plus": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>',
+}
+BOTTOM_NAV_MAIN = ["index.html", "calendrier.html", "statistiques.html", "disponibilites.html"]
+BOTTOM_NAV_PLUS = ["club.html", "championnat.html", "coupe.html", "confrontations.html", "effectif.html"]
+NAV_LABELS = dict(NAV_ITEMS)
+
 # Rempli une fois par main() puis utilisé par chaque appel à layout()
 _STICKY_HTML = {"value": ""}
 _LIENS_HTML = {"value": ""}
@@ -396,6 +409,37 @@ def layout(title, active, body):
         f'<a href="{page_href(href)}" class="{"active" if href == active else ""}">{label}</a>'
         for href, label in NAV_ITEMS
     )
+
+    # Barre basse "app" (PWA installée sur mobile uniquement, voir CSS)
+    bottom_main_html = "\n".join(
+        f'<a href="{page_href(href)}" class="bottomnav-item {"active" if href == active else ""}">'
+        f'{BOTTOM_NAV_ICONS[href]}<span>{NAV_LABELS[href]}</span></a>'
+        for href in BOTTOM_NAV_MAIN
+    )
+    plus_active = "active" if active in BOTTOM_NAV_PLUS else ""
+    bottom_plus_links = "\n".join(
+        f'<a href="{page_href(href)}" class="{"active" if href == active else ""}">{NAV_LABELS[href]}</a>'
+        for href in BOTTOM_NAV_PLUS
+    )
+    bottomnav_html = f"""
+    <nav class="bottomnav-app">
+      {bottom_main_html}
+      <a href="#" class="bottomnav-item {plus_active}" onclick="openModal('plusMenu');return false;">
+        {BOTTOM_NAV_ICONS['plus']}<span>Plus</span>
+      </a>
+    </nav>
+    <div class="match-modal plus-sheet" id="plusMenu" onclick="if(event.target===this) closeModal('plusMenu')">
+      <div class="match-modal-content plus-sheet-content">
+        <div class="modal-topband">
+          <span>Plus</span>
+          <button class="modal-close" onclick="closeModal('plusMenu')" aria-label="Fermer">&times;</button>
+        </div>
+        <div class="plus-sheet-links">
+          {bottom_plus_links}
+        </div>
+      </div>
+    </div>"""
+
     sticky = "" if active == "index.html" and not _CTX["season_path"] else _STICKY_HTML["value"]
     logo = asset_href("assets/logo.png")
     manifest = asset_href("assets/manifest.json")
@@ -444,6 +488,7 @@ def layout(title, active, body):
     {_LIENS_HTML["value"]}
   </div>
 </footer>
+{bottomnav_html}
 <script>
 function toggleMobileNav(){{
   document.getElementById('mobilenav').classList.toggle('open');
