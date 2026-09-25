@@ -725,6 +725,12 @@ def render_index(matchs, part, annonces, effectif, color_map, stade_map):
         return f'<div class="crest-badge" style="background:{color};color:#fff;">{name[:3].upper()}</div>'
 
     forme = compute_forme(matchs)
+    hero_maps_url, hero_waze_url = maps_links(hero_row.get("lieu"), stade_map)
+    hero_directions_html = f"""
+        <div class="modal-directions hero-directions">
+          <a href="{hero_maps_url}" target="_blank" rel="noopener" class="direction-btn">Google Maps</a>
+          <a href="{hero_waze_url}" target="_blank" rel="noopener" class="direction-btn">Waze</a>
+        </div>""" if hero_maps_url else ""
 
     hero_html = f"""
     <div class="hero">
@@ -745,6 +751,7 @@ def render_index(matchs, part, annonces, effectif, color_map, stade_map):
           </div>
         </div>
         {forme_html(forme)}
+        {hero_directions_html}
       </div>
       <div class="hero-notch"></div>
     </div>"""
