@@ -1792,6 +1792,8 @@ table.classement-table.data th.num, table.classement-table.data td.num{
 }
 .direction-btn:hover{ background:var(--paper-alt); }
 
+.hero-directions{ margin-top:22px; margin-bottom:4px; }
+
 /* ---------------------------------------------------------------------- */
 /* Liens utiles (page Club)                                                */
 /* ---------------------------------------------------------------------- */
