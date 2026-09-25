@@ -1934,3 +1934,54 @@ footer{
   color:#c9c9c7;
 }
 .footer-liens a:hover{ color:#fff; }
+
+/* ---------------------------------------------------------------------- */
+/* Barre de navigation basse — PWA installée sur mobile uniquement         */
+/* ---------------------------------------------------------------------- */
+
+.bottomnav-app{ display:none; }
+
+@media (display-mode: standalone) and (max-width:600px){
+  body{ padding-bottom:calc(58px + env(safe-area-inset-bottom,0px)); }
+
+  .bottomnav-app{
+    display:flex;
+    position:fixed;
+    left:0; right:0; bottom:0;
+    z-index:60;
+    background:var(--ink);
+    border-top:1px solid rgba(255,255,255,.1);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+
+  .bottomnav-item{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:3px;
+    padding:8px 0 6px;
+    color:#9d9d9c;
+    text-decoration:none;
+    font-size:10.5px;
+    font-weight:600;
+  }
+  .bottomnav-item svg{ width:21px; height:21px; }
+  .bottomnav-item.active{ color:#fff; }
+  .bottomnav-item.active svg{ stroke:var(--red); }
+
+  /* Le tiroir "Plus" réutilise .match-modal (déjà en bottom-sheet sur mobile) */
+  .plus-sheet-content{ max-width:none; }
+  .plus-sheet-links{ display:flex; flex-direction:column; }
+  .plus-sheet-links a{
+    padding:16px 20px;
+    border-bottom:1px solid var(--line);
+    color:var(--ink);
+    text-decoration:none;
+    font-weight:500;
+    font-size:15px;
+  }
+  .plus-sheet-links a:last-child{ border-bottom:none; }
+  .plus-sheet-links a.active{ color:var(--red); font-weight:700; }
+}
