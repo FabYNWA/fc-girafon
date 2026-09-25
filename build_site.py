@@ -727,9 +727,15 @@ def render_index(matchs, part, annonces, effectif, color_map, stade_map):
     forme = compute_forme(matchs)
     hero_maps_url, hero_waze_url = maps_links(hero_row.get("lieu"), stade_map)
     hero_directions_html = f"""
-        <div class="modal-directions hero-directions">
-          <a href="{hero_maps_url}" target="_blank" rel="noopener" class="direction-btn">Google Maps</a>
-          <a href="{hero_waze_url}" target="_blank" rel="noopener" class="direction-btn">Waze</a>
+        <div class="hero-directions">
+          <a href="{hero_maps_url}" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            Google Maps
+          </a>
+          <a href="{hero_waze_url}" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M5 17a2 2 0 1 0 4 0m6 0a2 2 0 1 0 4 0M5 17l1.5-6.5A3 3 0 0 1 9.4 8h5.2a3 3 0 0 1 2.9 2.5L19 17"/></svg>
+            Waze
+          </a>
         </div>""" if hero_maps_url else ""
 
     hero_html = f"""
@@ -744,6 +750,7 @@ def render_index(matchs, part, annonces, effectif, color_map, stade_map):
           <div class="matchup-center">
             {center}
             <div class="matchup-meta">{meta}</div>
+            {hero_directions_html}
           </div>
           <div class="matchup-side away">
             {badge(away, not home_is_girafon)}
@@ -751,7 +758,6 @@ def render_index(matchs, part, annonces, effectif, color_map, stade_map):
           </div>
         </div>
         {forme_html(forme)}
-        {hero_directions_html}
       </div>
       <div class="hero-notch"></div>
     </div>"""
