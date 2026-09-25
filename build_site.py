@@ -385,9 +385,17 @@ def page_href(page_name):
     return f"{SITE_BASE}{page_name}"
 
 def asset_href(path):
-    """URL absolue d'un fichier statique (assets/...) — toujours la même,
-    quel que soit le sous-dossier dans lequel la page courante est générée."""
-    return f"{SITE_BASE}{path}"
+    """URL absolue d'un fichier statique (assets/...), avec un paramètre ?v=hash
+    du contenu du fichier pour forcer les navigateurs à le recharger dès qu'il
+    change (sinon ils gardent en cache l'ancienne version après un déploiement,
+    même quand le reste de la page est à jour)."""
+    href = f"{SITE_BASE}{path}"
+    try:
+        with open(path, "rb") as f:
+            v = hashlib.md5(f.read()).hexdigest()[:8]
+        return f"{href}?v={v}"
+    except OSError:
+        return href
 
 def season_select_html(active_page):
     """Un vrai sélecteur : chaque option pointe vers l'URL réelle de la page
