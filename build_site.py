@@ -398,6 +398,8 @@ def layout(title, active, body):
     )
     sticky = "" if active == "index.html" and not _CTX["season_path"] else _STICKY_HTML["value"]
     logo = asset_href("assets/logo.png")
+    manifest = asset_href("assets/manifest.json")
+    apple_icon = asset_href("assets/apple-touch-icon.png")
     style = asset_href("assets/style.css")
     home_href = f"{SITE_BASE}index.html"
     return f"""<!doctype html>
@@ -407,6 +409,9 @@ def layout(title, active, body):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title} — {CLUB}</title>
 <link rel="icon" type="image/png" href="{logo}">
+<link rel="apple-touch-icon" href="{apple_icon}">
+<link rel="manifest" href="{manifest}">
+<meta name="theme-color" content="#16171A">
 <meta property="og:title" content="{title} — {CLUB}">
 <meta property="og:description" content="{CLUB} — FSGT IDF — 94 — résultats, calendrier, effectif et statistiques.">
 <meta property="og:image" content="{logo}">
