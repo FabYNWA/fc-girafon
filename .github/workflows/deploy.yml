@@ -49,8 +49,7 @@ jobs:
       - name: Copier les fichiers statiques (CSS, logo, photos)
         run: |
           mkdir -p output/assets
-          cp assets/style.css output/assets/
-          cp assets/logo.png output/assets/
+          cp assets/*.css assets/*.png assets/*.json output/assets/
           if [ -d fetched_assets/photos ]; then
             mkdir -p output/assets/photos
             cp -r fetched_assets/photos/. output/assets/photos/
