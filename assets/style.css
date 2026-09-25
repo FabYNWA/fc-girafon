@@ -1792,7 +1792,29 @@ table.classement-table.data th.num, table.classement-table.data td.num{
 }
 .direction-btn:hover{ background:var(--paper-alt); }
 
-.hero-directions{ margin-top:22px; margin-bottom:4px; }
+.hero-directions{
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  margin-top:12px;
+}
+.hero-directions a{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  font-size:11.5px;
+  font-weight:600;
+  letter-spacing:.01em;
+  color:#fff;
+  background:rgba(255,255,255,.09);
+  border:1px solid rgba(255,255,255,.22);
+  padding:6px 13px;
+  border-radius:20px;
+  text-decoration:none;
+  transition:background .15s, border-color .15s;
+}
+.hero-directions a:hover{ background:rgba(255,255,255,.2); border-color:rgba(255,255,255,.4); }
+.hero-directions svg{ width:13px; height:13px; flex-shrink:0; opacity:.9; }
 
 /* ---------------------------------------------------------------------- */
 /* Liens utiles (page Club)                                                */
