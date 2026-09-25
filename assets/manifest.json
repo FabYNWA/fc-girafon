@@ -1,7 +1,8 @@
 {
   "name": "FC Girafon",
   "short_name": "FC Girafon",
-  "start_url": ".",
+  "start_url": "/fc-girafon/",
+  "scope": "/fc-girafon/",
   "display": "standalone",
   "background_color": "#16171A",
   "theme_color": "#16171A",
