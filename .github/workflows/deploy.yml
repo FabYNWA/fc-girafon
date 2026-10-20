@@ -50,6 +50,10 @@ jobs:
         run: |
           mkdir -p output/assets
           cp assets/*.css assets/*.png assets/*.json output/assets/
+          if [ -d assets/video ]; then
+            mkdir -p output/assets/video
+            cp assets/video/* output/assets/video/
+          fi
           if [ -d fetched_assets/photos ]; then
             mkdir -p output/assets/photos
             cp -r fetched_assets/photos/. output/assets/photos/

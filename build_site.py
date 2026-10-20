@@ -31,6 +31,9 @@ def season_slug(season):
     """'2025 / 2026' -> '2025-2026', utilisé comme nom de sous-dossier d'archive."""
     return season.replace(" / ", "-").replace(" ", "")
 
+# Classement des tours de brassage de la Coupe (toutes saisons), rempli par load()
+_BRASSAGE = {"df": pd.DataFrame()}
+
 # Rempli une fois par appel à generate_season() — voir main()
 _CTX = {"season_path": ""}  # "" à la racine (saison courante), "2025-2026/" en archive
 
@@ -61,6 +64,10 @@ def load():
     liens_utiles = pd.read_csv(DATA / "liens_utiles.csv")
     stades = pd.read_csv(DATA / "stades.csv")
     disponibilites = pd.read_csv(DATA / "disponibilites.csv")
+    try:
+        _BRASSAGE["df"] = pd.read_csv(DATA / "classement_brassage.csv", dtype={"comite": str})
+    except (FileNotFoundError, pd.errors.EmptyDataError):
+        _BRASSAGE["df"] = pd.DataFrame()
     return matchs, part, effectif, classement, annonces, club_info, adversaires, liens_utiles, stades, disponibilites
 
 # ---------------------------------------------------------------------------
@@ -744,6 +751,18 @@ def annonces_actives(annonces):
     return annonces[annonces.apply(is_active, axis=1)]
 
 
+def video_html(path):
+    """Lecteur vidéo vertical (affiche = .jpg de même nom, pas de lecture auto).
+    `path` est relatif à assets/ (ex. "video/brassages-2026.mp4"). Vide si absent."""
+    if path is None or str(path).strip() in ("", "nan"):
+        return ""
+    path = str(path).strip().lstrip("/")
+    poster = path.rsplit(".", 1)[0] + ".jpg"
+    return (f'<div class="video-wrap"><video controls playsinline preload="none" '
+            f'poster="{asset_href("assets/" + poster)}" src="{asset_href("assets/" + path)}">'
+            f'Ton navigateur ne lit pas les vidéos.</video></div>')
+
+
 def render_index(matchs, part, annonces, effectif, color_map, stade_map):
     annonces = annonces_actives(annonces)
     part_summary = build_participation_summary(part, effectif['nom'].tolist())
@@ -824,10 +843,11 @@ def render_index(matchs, part, annonces, effectif, color_map, stade_map):
         )
         annonces_sorted = annonces_sorted.sort_values("_date_tri", ascending=False, na_position="last")
         annonces_html = "\n".join(
-            f"""<div class="announce">
+            f"""<div class="announce{' has-video' if video_html(r.get('video')) else ''}">
                   <div class="announce-date">{r['date_publication']}</div>
                   <div class="announce-title">{r['titre']}</div>
                   <div class="announce-text">{nl2br(r['texte'])}</div>
+                  {video_html(r.get('video'))}
                 </div>"""
             for _, r in annonces_sorted.iterrows()
         )
@@ -1031,21 +1051,178 @@ def render_championnat(matchs, classement, part, effectif, color_map, stade_map)
 # Page Coupe
 # ---------------------------------------------------------------------------
 
+ZONES = [  # (nom, rang max, libellé, classe css)
+    ("Or", 64, "Coupe régionale Or", "or"),
+    ("Argent", 128, "Coupe régionale Argent", "argent"),
+    ("Bronze", 192, "Coupe régionale Bronze", "bronze"),
+    ("Départementale", 10**6, "Coupe départementale", "dep"),
+]
+BRASSAGE_COMP = "Coupe | Brassages"
+BRASSAGE_VIDEO = "video/brassages-2026.mp4"
+
+def _fmt_num(v, decimals=2):
+    """3.0 -> '3', 2.75 -> '2,75' (virgule française)."""
+    if pd.isna(v):
+        return "–"
+    v = round(float(v), decimals)
+    return (f"{v:.{decimals}f}".rstrip("0").rstrip(".") if v != int(v) else str(int(v))).replace(".", ",")
+
+def brassage_ranking_html(rows):
+    """Classement complet du brassage de Coupe : zones colorées, FC Girafon en
+    évidence, vue 'autour de nous' par défaut + recherche + filtre par zone."""
+    rows = rows.sort_values("rang")
+    total = len(rows)
+    arrete = next((str(a) for a in rows["arrete"] if str(a) not in ("", "nan")), "")
+    me = rows[rows["equipe"].str.strip().str.upper() == CLUB.upper()]
+    my_rank = int(me.iloc[0]["rang"]) if len(me) else None
+
+    # Récap FC Girafon
+    recap = ""
+    if len(me):
+        m = me.iloc[0]
+        recap = f"""<div class="brs-me">
+          <div class="brs-me-rank">{my_rank}<sup>e</sup><span>sur {total}</span></div>
+          <div class="brs-me-text"><strong>{CLUB}</strong><br>
+            {int(m['g'])} victoires en {int(m['j'])} matchs · {int(m['pour'])} buts pour, {int(m['contre'])} contre</div>
+        </div>"""
+
+    zone_counts = {z[0]: int((rows["zone"] == z[0]).sum()) for z in ZONES}
+    legend = "".join(
+        f'<button type="button" class="brs-chip z-{cls}" data-zone="{name}">{lab.replace("Coupe régionale ", "").replace("Coupe départementale", "Départementale")} <span>{zone_counts[name]}</span></button>'
+        for name, _, lab, cls in ZONES if zone_counts[name])
+    zone_cls = {z[0]: z[3] for z in ZONES}
+    zone_lab = {z[0]: z[2] for z in ZONES}
+
+    trs, last_zone = [], None
+    for _, r in rows.iterrows():
+        z = r["zone"] if r["zone"] in zone_cls else "Départementale"
+        if z != last_zone:
+            first = int(r["rang"])
+            trs.append(f'<tr class="brs-zone z-{zone_cls[z]}" data-zone="{z}"><td colspan="11">{zone_lab[z]}</td></tr>')
+            last_zone = z
+        is_me = str(r["equipe"]).strip().upper() == CLUB.upper()
+        rk = int(r["rang"])
+        trs.append(f"""<tr class="brs-row z-{zone_cls[z]}{' brs-self' if is_me else ''}" data-zone="{z}" data-rank="{rk}" data-name="{str(r['equipe']).lower()} {r['comite']}">
+          <td class="num rk">{rk}</td>
+          <td class="tm">{r['equipe']}<small> ({r['comite']})</small></td>
+          <td class="num strong">{_fmt_num(r['pts_m'])}</td>
+          <td class="num">{_fmt_num(r['diff_m'])}</td>
+          <td class="num">{int(r['j'])}</td>
+          <td class="num">{int(r['g'])}</td>
+          <td class="num">{int(r['n'])}</td>
+          <td class="num">{int(r['p'])}</td>
+          <td class="num">{int(r['fp'])}</td>
+          <td class="num">{int(r['pour'])}</td>
+          <td class="num">{int(r['contre'])}</td>
+        </tr>""")
+
+    return f"""
+    <div class="brs" id="brs" data-me="{my_rank or 0}">
+      {recap}
+      <p class="hint-text">Classement des 4 tours de brassage{f", arrêté le {arrete}" if arrete else ""}. Les équipes sont classées par points par match, puis différence de buts par match.</p>
+      <div class="brs-tools">
+        <input type="search" id="brs-q" class="brs-search" placeholder="Chercher une équipe ou un comité (94, 75…)" autocomplete="off">
+        <div class="brs-chips">{legend}</div>
+      </div>
+      <div class="table-scroll brs-scroll"><table class="data brs-table">
+        <thead><tr>
+          <th class="num">#</th><th>Équipe</th><th class="num">Pts/M</th><th class="num">Diff/M</th>
+          <th class="num">J</th><th class="num">V</th><th class="num">N</th><th class="num">D</th><th class="num">F</th>
+          <th class="num">BP</th><th class="num">BC</th>
+        </tr></thead>
+        <tbody>{''.join(trs)}</tbody>
+      </table></div>
+      <div class="brs-foot">
+        <button type="button" id="brs-toggle" class="brs-btn">Voir le classement complet ({total} équipes)</button>
+        <span id="brs-count" class="hint-text"></span>
+      </div>
+    </div>
+    <script>
+    (function(){{
+      var box = document.getElementById('brs'); if(!box) return;
+      var me = parseInt(box.dataset.me, 10) || 0;
+      var rows = box.querySelectorAll('tr.brs-row'), heads = box.querySelectorAll('tr.brs-zone');
+      var q = document.getElementById('brs-q'), btn = document.getElementById('brs-toggle'), cnt = document.getElementById('brs-count');
+      var chips = box.querySelectorAll('.brs-chip'), full = false, zone = '';
+      function apply(){{
+        var term = q.value.trim().toLowerCase(), shown = 0;
+        var around = !full && !term && !zone && me;
+        var shownZones = {{}};
+        rows.forEach(function(r){{
+          var rk = parseInt(r.dataset.rank, 10), ok = true;
+          if(around) ok = Math.abs(rk - me) <= 6 || rk <= 3;
+          if(zone && r.dataset.zone !== zone) ok = false;
+          if(term && r.dataset.name.indexOf(term) < 0) ok = false;
+          r.style.display = ok ? '' : 'none';
+          if(ok){{ shown++; shownZones[r.dataset.zone] = 1; }}
+        }});
+        heads.forEach(function(h){{ h.style.display = (!around && shownZones[h.dataset.zone]) ? '' : 'none'; }});
+        var sc = box.querySelector('.brs-scroll');
+        sc.classList.toggle('brs-tall', !around);
+        btn.textContent = around ? 'Voir le classement complet ({total} équipes)' : (term || zone ? 'Revenir à la vue réduite' : 'Revenir à la vue réduite');
+        btn.style.display = (term || zone) && !full ? 'none' : '';
+        cnt.textContent = around ? 'Les 3 premiers et les équipes autour de nous.' : shown + ' équipe' + (shown > 1 ? 's' : '') + ' affichée' + (shown > 1 ? 's' : '');
+      }}
+      btn.addEventListener('click', function(){{ full = !full; if(!full){{ q.value=''; zone=''; chips.forEach(function(c){{c.classList.remove('on');}}); }} apply(); }});
+      q.addEventListener('input', apply);
+      chips.forEach(function(c){{ c.addEventListener('click', function(){{
+        var z = c.dataset.zone; zone = (zone === z) ? '' : z;
+        chips.forEach(function(x){{ x.classList.toggle('on', x.dataset.zone === zone); }}); apply();
+      }}); }});
+      apply();
+    }})();
+    </script>"""
+
 def render_coupe(matchs, part, effectif, color_map, stade_map):
     part_summary = build_participation_summary(part, effectif['nom'].tolist())
     coupe = matchs[matchs["competition"].str.startswith("Coupe", na=False)].sort_values("date_dt")
-    body = f"""
+    brass_matchs = coupe[coupe["competition"] == BRASSAGE_COMP]
+    autres = coupe[coupe["competition"] != BRASSAGE_COMP]
+
+    ranking = _BRASSAGE["df"]
+    ranking = ranking[ranking["saison"] == SEASON] if len(ranking) and "saison" in ranking.columns else ranking.iloc[0:0]
+
+    if len(ranking):
+        # Bloc "Tours de brassage" : vidéo, résultats, classement complet
+        # (uniquement pour la saison à laquelle appartient le classement)
+        saison_courte = SEASON.replace(" ", "")
+        brassage_html = f"""
+    <div class="section">
+      <div class="container">
+        <div class="section-head">
+          <h2>Tours de brassage {saison_courte}</h2>
+          <span class="count">{len(brass_matchs)} rencontres</span>
+        </div>
+        {video_html(BRASSAGE_VIDEO)}
+        <p class="hint-text">Clique sur un match pour voir ses détails.</p>
+        {match_grid(brass_matchs, part_summary, color_map, stade_map)}
+      </div>
+    </div>
+    <div class="section alt">
+      <div class="container">
+        <div class="section-head"><h2>Classement du brassage</h2></div>
+        {brassage_ranking_html(ranking)}
+      </div>
+    </div>"""
+        reste = autres
+    else:
+        brassage_html = ""
+        reste = coupe
+
+    reste_html = ""
+    if len(reste) or not brassage_html:
+        reste_html = f"""
     <div class="section">
       <div class="container">
         <div class="section-head">
           <h2>Coupe</h2>
-          <span class="count">{len(coupe)} rencontres</span>
+          <span class="count">{len(reste)} rencontres</span>
         </div>
         <p class="hint-text">Clique sur un match pour voir ses détails.</p>
-        {match_grid(coupe, part_summary, color_map, stade_map)}
+        {match_grid(reste, part_summary, color_map, stade_map)}
       </div>
     </div>"""
-    return layout("Coupe", "coupe.html", body)
+    return layout("Coupe", "coupe.html", brassage_html + reste_html)
 
 # ---------------------------------------------------------------------------
 # Page Effectif + fiches joueurs

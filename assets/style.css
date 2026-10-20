@@ -1985,3 +1985,96 @@ footer{
   .plus-sheet-links a:last-child{ border-bottom:none; }
   .plus-sheet-links a.active{ color:var(--red); font-weight:700; }
 }
+
+/* ---------------------------------------------------------------------- */
+/* Vidéo (annonce + onglet Coupe)                                          */
+/* ---------------------------------------------------------------------- */
+
+.video-wrap{
+  max-width:340px;
+  margin:14px auto 6px;
+  border-radius:10px;
+  overflow:hidden;
+  background:#000;
+  box-shadow:0 4px 18px rgba(0,0,0,.18);
+}
+.video-wrap video{ display:block; width:100%; height:auto; aspect-ratio:9/16; background:#000; }
+.announce.has-video{ text-align:left; }
+
+/* ---------------------------------------------------------------------- */
+/* Classement du brassage de Coupe                                         */
+/* ---------------------------------------------------------------------- */
+
+.brs-me{
+  display:flex; align-items:center; gap:16px;
+  background:var(--red); color:#fff;
+  padding:14px 18px; margin-bottom:14px;
+}
+.brs-me-rank{
+  font-family:var(--font-display); font-weight:700;
+  font-size:48px; line-height:1; white-space:nowrap;
+}
+.brs-me-rank sup{ font-size:20px; vertical-align:top; margin-left:1px; }
+.brs-me-rank span{ display:block; font-size:12px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; opacity:.85; margin-top:4px; }
+.brs-me-text{ font-size:14px; line-height:1.4; }
+
+.brs-tools{ display:flex; flex-direction:column; gap:10px; margin:10px 0 12px; }
+.brs-search{
+  width:100%; padding:11px 14px; font:inherit; font-size:15px;
+  border:1px solid var(--grey-line); border-radius:0; background:var(--paper);
+}
+.brs-search:focus{ outline:2px solid var(--red); outline-offset:-1px; }
+.brs-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+.brs-chip{
+  font:inherit; font-size:13px; font-weight:600; cursor:pointer;
+  padding:6px 12px; border:2px solid transparent; background:var(--paper-alt); color:var(--ink);
+}
+.brs-chip span{ opacity:.65; font-weight:500; margin-left:4px; }
+.brs-chip.on{ border-color:var(--ink); }
+.brs-chip.z-or{ background:#F7D96B; }
+.brs-chip.z-argent{ background:#D5D8DB; }
+.brs-chip.z-bronze{ background:#E6B98F; }
+.brs-chip.z-dep{ background:#fff; border-color:var(--grey-line); }
+.brs-chip.z-dep.on{ border-color:var(--ink); }
+
+.brs-scroll.brs-tall{ max-height:70vh; overflow-y:auto; }
+.brs-table{ min-width:0; }
+.brs-table thead th{ position:sticky; top:0; z-index:2; }
+.brs-table th, .brs-table td{ padding-left:6px; padding-right:6px; }
+.brs-table td.tm{ padding-left:10px; }
+.brs-table td.tm{ white-space:normal; min-width:150px; }
+.brs-table td.tm small{ color:var(--grey); font-size:11px; }
+.brs-table td.strong{ font-weight:700; }
+
+.brs-table tr.brs-zone td{
+  font-family:var(--font-display); font-size:13px; font-weight:600; letter-spacing:.06em;
+  text-transform:uppercase; padding:7px 12px; color:var(--ink);
+}
+.brs-table tr.brs-zone.z-or td{ background:#E8B923; }
+.brs-table tr.brs-zone.z-argent td{ background:#A9AEB3; }
+.brs-table tr.brs-zone.z-bronze td{ background:#C8793F; color:#fff; }
+.brs-table tr.brs-zone.z-dep td{ background:#fff; border-top:2px solid var(--ink); border-bottom:1px solid var(--grey-line); }
+
+.brs-table tbody tr.brs-row td:first-child{ border-left:5px solid transparent; }
+.brs-table tbody tr.brs-row.z-or{ background:#FFF4CC; }
+.brs-table tbody tr.brs-row.z-or td:first-child{ border-left-color:#E8B923; }
+.brs-table tbody tr.brs-row.z-argent{ background:#EEF0F2; }
+.brs-table tbody tr.brs-row.z-argent td:first-child{ border-left-color:#A9AEB3; }
+.brs-table tbody tr.brs-row.z-bronze{ background:#F8E6D6; }
+.brs-table tbody tr.brs-row.z-bronze td:first-child{ border-left-color:#C8793F; }
+.brs-table tbody tr.brs-row.z-dep{ background:#fff; }
+.brs-table tbody tr.brs-row.z-dep td:first-child{ border-left-color:var(--grey-line); }
+
+/* FC Girafon : ressort partout */
+.brs-table tbody tr.brs-row.brs-self,
+.brs-table tbody tr.brs-row.brs-self:nth-child(even){ background:var(--red); }
+.brs-table tbody tr.brs-row.brs-self td{ color:#fff; font-weight:700; border-bottom-color:var(--red-dark); }
+.brs-table tbody tr.brs-row.brs-self td small{ color:#fff; opacity:.8; }
+.brs-table tbody tr.brs-row.brs-self td:first-child{ border-left-color:#000; }
+
+.brs-foot{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:12px; }
+.brs-btn{
+  font:inherit; font-weight:600; font-size:14px; cursor:pointer;
+  background:var(--ink); color:#fff; border:0; padding:11px 18px;
+}
+.brs-btn:hover{ background:var(--red); }

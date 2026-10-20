@@ -87,6 +87,10 @@ def main():
         disponibilites_raw = fetch_table("Disponibilites")
     except requests.HTTPError:
         disponibilites_raw = []
+    try:
+        brassage_raw = fetch_table("Classement_Brassage")
+    except requests.HTTPError:
+        brassage_raw = []
 
     # Table de correspondance id Effectif -> Nom, pour résoudre les références
     nom_par_id = {r["id"]: r.get("Nom", "") for r in effectif_raw}
@@ -208,8 +212,9 @@ def main():
             "texte": r.get("Texte", ""),
             "date_publication": grist_date_to_str(r.get("Date_Publication")),
             "date_expiration": grist_date_to_str(r.get("Date_Expiration")),
+            "video": r.get("Video") or "",
         })
-    pd.DataFrame(annonces_out, columns=["titre", "texte", "date_publication", "date_expiration"]).to_csv(
+    pd.DataFrame(annonces_out, columns=["titre", "texte", "date_publication", "date_expiration", "video"]).to_csv(
         DATA_DIR / "annonces.csv", index=False)
 
     # -----------------------------------------------------------------
@@ -275,6 +280,29 @@ def main():
     if disponibilites_raw:
         print("  Colonnes brutes vues dans Disponibilites (1ère ligne) :", list(disponibilites_raw[0].keys()))
         print("  Aperçu converti :", dispo_out[:3])
+
+    # -----------------------------------------------------------------
+    # Classement_Brassage (classement des tours de brassage de la Coupe,
+    # une ligne par équipe et par saison — distinct du classement Championnat)
+    # -----------------------------------------------------------------
+    brassage_out = []
+    for r in brassage_raw:
+        brassage_out.append({
+            "saison": r.get("Saison") or "",
+            "arrete": r.get("Arrete") or "",
+            "rang": r.get("Rang"),
+            "equipe": r.get("Equipe") or "",
+            "comite": r.get("Comite") or "",
+            "zone": r.get("Zone") or "",
+            "pts_m": r.get("PtsM"), "diff_m": r.get("DiffM"), "buts_m": r.get("ButsM"),
+            "diff": r.get("Diff"), "pour": r.get("Pour"), "contre": r.get("Contre"),
+            "pts": r.get("Pts"), "j": r.get("J"), "g": r.get("G"), "n": r.get("N"),
+            "p": r.get("P"), "fp": r.get("FP"),
+        })
+    pd.DataFrame(brassage_out, columns=["saison", "arrete", "rang", "equipe", "comite", "zone",
+                                        "pts_m", "diff_m", "buts_m", "diff", "pour", "contre",
+                                        "pts", "j", "g", "n", "p", "fp"]).to_csv(
+        DATA_DIR / "classement_brassage.csv", index=False)
 
     print(f"OK — {len(matchs_out)} matchs, {len(part_out)} participations, "
           f"{len(effectif_out)} joueurs, {len(classement_out)} lignes de classement.")
