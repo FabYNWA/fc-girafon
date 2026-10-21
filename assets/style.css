@@ -2092,7 +2092,7 @@ body.page-calendrier{ overflow-x:clip; }
   top:var(--cal-top, 0px);
   z-index:40;
   display:flex;
-  gap:8px;
+  gap:6px;
   padding:10px 0;
   margin-bottom:8px;
   background:var(--paper);
@@ -2104,19 +2104,20 @@ body.page-calendrier{ overflow-x:clip; }
 .cal-filters::-webkit-scrollbar{ display:none; }
 
 .cal-chip{
-  flex:0 0 auto;
-  min-height:40px;
-  padding:8px 14px;
+  flex:1 1 auto;
+  min-height:38px;
+  padding:6px 8px;
   font:inherit;
-  font-size:13px;
+  font-size:12px;
   font-weight:600;
+  white-space:nowrap;
   color:var(--ink);
-  background:var(--paper-alt);
-  border:2px solid transparent;
+  background:var(--paper);
+  border:1.5px solid var(--ink);
   cursor:pointer;
 }
-.cal-chip[aria-pressed="true"]{ background:var(--ink); color:#fff; }
-.cal-sep{ flex:0 0 1px; margin:6px 2px; background:var(--grey-line); }
+.cal-chip[aria-pressed="true"]{ background:var(--red); border-color:var(--red); color:#fff; }
+.cal-sep{ flex:0 0 1px; margin:4px 1px; background:var(--grey-line); }
 
 .match-card.cal-hidden{ display:none; }
 
@@ -2126,11 +2127,7 @@ body.page-calendrier{ overflow-x:clip; }
   box-shadow:0 0 0 2px var(--red);
 }
 .next-tag{
-  position:absolute;
-  top:-11px;
-  left:14px;
-  z-index:2;
-  padding:3px 10px;
+  padding:4px 14px;
   background:var(--red);
   color:#fff;
   font-family:var(--font-display);
