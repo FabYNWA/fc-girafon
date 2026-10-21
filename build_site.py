@@ -480,7 +480,7 @@ def layout(title, active, body):
 <meta name="twitter:image" content="{logo}">
 <link rel="stylesheet" href="{style}">
 </head>
-<body>
+<body class="page-{active.replace('.html', '')}">
 <div class="topbar">
   <div class="topbar-inner">
     <a href="{home_href}" class="brand">
@@ -566,11 +566,18 @@ def build_participation_summary(part, all_names=None):
         }
     return summary
 
+def card_data_attrs(row):
+    """Attributs lus par le JS du calendrier (filtres rapides, prochain match)."""
+    comp = str(row["competition"]) if pd.notna(row.get("competition")) else ""
+    kind = next((k for k in ("Championnat", "Coupe", "Amical") if comp.startswith(k)), "")
+    date_iso = row["date_dt"].strftime("%Y-%m-%d") if pd.notna(row.get("date_dt")) else ""
+    return f' data-date="{date_iso}" data-statut="{row["statut"]}" data-kind="{kind}"'
+
 def off_card(row):
     """Carte simplifiée pour les journées sans match (vacances, annulé)."""
     label = {"Vacances": "Trêve", "Annulé": "Match annulé"}.get(row["statut"], row["statut"])
     return f"""
-    <div class="match-card result-a off-card">
+    <div class="match-card result-a off-card"{card_data_attrs(row)}>
       <div class="match-card-head"><span class="match-card-comp">{label}</span></div>
       <div class="match-card-body" style="justify-content:center;">
         <span class="status-chip">{date_fr(row['date_dt'])}</span>
@@ -685,7 +692,7 @@ def match_card(row, part_summary=None, color_map=None, stade_map=None):
         return f'<div class="match-card-team {extra_cls}">{name}</div>'
 
     card_html = f"""
-    <div class="{card_cls} {rclass}"{click_attr}>
+    <div class="{card_cls} {rclass}"{click_attr}{card_data_attrs(row)}>
       {competition_watermark(row['competition'])}
       <div class="match-card-head">
         <span class="match-card-comp">{competition_badge(row['competition'])}{row['competition'] if pd.notna(row['competition']) else 'Trêve'}</span>
@@ -950,20 +957,150 @@ def render_club(club_info, stades):
 # Page Calendrier
 # ---------------------------------------------------------------------------
 
+CALENDRIER_JS = """
+(function(){
+  var cards = Array.prototype.slice.call(document.querySelectorAll('.match-grid .match-card'));
+  if(!cards.length) return;
+  var next = document.querySelector('.match-grid .match-card[data-statut="Programmé"]');
+  var bar = document.getElementById('cal-filters');
+  var fab = document.getElementById('cal-next-btn');
+  var countEl = document.getElementById('cal-count');
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.cal-chip'));
+  var total = cards.length;
+  var state = {statut: null, kind: null};
+  var moved = false;
+
+  if(next){
+    next.classList.add('is-next');
+    var tag = document.createElement('div');
+    tag.className = 'next-tag';
+    tag.textContent = 'Prochain match';
+    next.appendChild(tag);
+  }
+
+  function stickyH(){
+    var sb = document.querySelector('.sticky-bar');
+    return sb ? sb.offsetHeight : 0;
+  }
+  function setTop(){
+    document.documentElement.style.setProperty('--cal-top', stickyH() + 'px');
+  }
+  function offset(){
+    return stickyH() + (bar ? bar.offsetHeight : 0) + 20;
+  }
+  function scrollToCard(card, smooth){
+    if(!card) return;
+    var y = Math.max(0, card.getBoundingClientRect().top + window.pageYOffset - offset());
+    try { window.scrollTo({top: y, behavior: smooth ? 'smooth' : 'instant'}); }
+    catch(e){ window.scrollTo(0, y); }
+  }
+  function isHidden(c){ return c.classList.contains('cal-hidden'); }
+
+  function updateFab(){
+    if(!fab || !next) return;
+    if(isHidden(next)){ fab.classList.remove('show'); return; }
+    var r = next.getBoundingClientRect();
+    var up = r.bottom < offset();
+    var down = r.top > window.innerHeight;
+    fab.classList.toggle('show', up || down);
+    fab.classList.toggle('up', up);
+  }
+  var ticking = false;
+  window.addEventListener('scroll', function(){
+    if(ticking) return;
+    ticking = true;
+    window.requestAnimationFrame(function(){ ticking = false; updateFab(); });
+  }, {passive: true});
+  window.addEventListener('resize', function(){ setTop(); updateFab(); });
+
+  function apply(){
+    var shown = 0;
+    cards.forEach(function(c){
+      var ok = (!state.statut || c.getAttribute('data-statut') === state.statut) &&
+               (!state.kind || c.getAttribute('data-kind') === state.kind);
+      c.classList.toggle('cal-hidden', !ok);
+      if(ok) shown++;
+    });
+    chips.forEach(function(b){
+      var on = state[b.getAttribute('data-group')] === b.getAttribute('data-value');
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    if(countEl){
+      var filtered = state.statut || state.kind;
+      countEl.textContent = filtered ? (shown + ' / ' + total + ' rencontres') : (total + ' rencontres');
+    }
+    updateFab();
+  }
+
+  if(bar){
+    bar.addEventListener('click', function(e){
+      var b = e.target.closest ? e.target.closest('.cal-chip') : null;
+      if(!b) return;
+      var g = b.getAttribute('data-group'), v = b.getAttribute('data-value');
+      state[g] = (state[g] === v) ? null : v;
+      apply();
+      var vis = cards.filter(function(c){ return !isHidden(c); });
+      var target = (next && !isHidden(next)) ? next : vis[vis.length - 1];
+      scrollToCard(target, false);
+    });
+  }
+  if(fab){
+    fab.addEventListener('click', function(){ scrollToCard(next, true); });
+  }
+
+  ['touchstart', 'wheel', 'mousedown', 'keydown'].forEach(function(ev){
+    window.addEventListener(ev, function(){ moved = true; }, {passive: true, once: true});
+  });
+
+  setTop();
+  apply();
+  var nav = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) || {};
+  var skip = location.hash || nav.type === 'back_forward';
+  if(next && !skip){
+    scrollToCard(next, false);
+    window.addEventListener('load', function(){
+      setTop();
+      if(!moved) scrollToCard(next, false);
+      updateFab();
+    });
+  }
+})();
+"""
+
 def render_calendrier(matchs, part, effectif, color_map, stade_map):
     part_summary = build_participation_summary(part, effectif['nom'].tolist())
     ordered = matchs.sort_values("date_dt")
+
+    chips = [
+        ("statut", "Programmé", "À venir"),
+        ("statut", "Joué", "Joués"),
+        ("kind", "Championnat", "Championnat"),
+        ("kind", "Coupe", "Coupe"),
+    ]
+    if ordered["competition"].fillna("").str.startswith("Amical").any():
+        chips.append(("kind", "Amical", "Amicaux"))
+    chips_html = ""
+    for i, (group, value, label) in enumerate(chips):
+        if i > 0 and group != chips[i - 1][0]:
+            chips_html += '<span class="cal-sep"></span>'
+        chips_html += (f'<button type="button" class="cal-chip" data-group="{group}" '
+                       f'data-value="{value}" aria-pressed="false">{label}</button>')
+
+    arrow = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>'
     body = f"""
     <div class="section">
       <div class="container">
         <div class="section-head">
           <h2>Résultats &amp; calendrier — saison {SEASON}</h2>
-          <span class="count">{len(ordered)} rencontres</span>
+          <span class="count" id="cal-count">{len(ordered)} rencontres</span>
         </div>
+        <div class="cal-filters" id="cal-filters" role="group" aria-label="Filtres rapides">{chips_html}</div>
         <p class="hint-text">Clique sur un match pour voir ses détails.</p>
         {match_grid(ordered, part_summary, color_map, stade_map)}
       </div>
-    </div>"""
+    </div>
+    <button type="button" class="cal-next-btn" id="cal-next-btn">{arrow}<span>Prochain match</span></button>
+    <script>{CALENDRIER_JS}</script>"""
     return layout("Résultats & calendrier", "calendrier.html", body)
 
 # ---------------------------------------------------------------------------
