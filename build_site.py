@@ -975,7 +975,7 @@ CALENDRIER_JS = """
     var tag = document.createElement('div');
     tag.className = 'next-tag';
     tag.textContent = 'Prochain match';
-    next.appendChild(tag);
+    next.insertBefore(tag, next.firstChild);
   }
 
   function stickyH(){
@@ -1078,7 +1078,7 @@ def render_calendrier(matchs, part, effectif, color_map, stade_map):
         ("kind", "Coupe", "Coupe"),
     ]
     if ordered["competition"].fillna("").str.startswith("Amical").any():
-        chips.append(("kind", "Amical", "Amicaux"))
+        chips.append(("kind", "Amical", "Amical"))
     chips_html = ""
     for i, (group, value, label) in enumerate(chips):
         if i > 0 and group != chips[i - 1][0]:
